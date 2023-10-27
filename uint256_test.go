@@ -8,8 +8,8 @@ import (
 
 	ethmath "github.com/ethereum/go-ethereum/common/math"
 
-	"github.com/m0t0k1ch1-go/bigutil"
-	"github.com/m0t0k1ch1-go/bigutil/internal/testutil"
+	"github.com/m0t0k1ch1-go/bigutil/v2"
+	"github.com/m0t0k1ch1-go/bigutil/v2/internal/testutil"
 )
 
 func TestUint256Value(t *testing.T) {
