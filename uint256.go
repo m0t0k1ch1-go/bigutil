@@ -42,8 +42,8 @@ func MustBigIntToUint256(x *big.Int) Uint256 {
 }
 
 // BigInt returns the big.Int.
-func (i Uint256) BigInt() big.Int {
-	return i.x
+func (i Uint256) BigInt() *big.Int {
+	return &i.x
 }
 
 // String implements the fmt.Stringer interface.

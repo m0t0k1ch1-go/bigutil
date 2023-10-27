@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	ethmath "github.com/ethereum/go-ethereum/common/math"
-	"github.com/google/go-cmp/cmp"
 
 	"github.com/m0t0k1ch1-go/bigutil"
 	"github.com/m0t0k1ch1-go/bigutil/internal/testutil"
@@ -60,7 +59,7 @@ func TestUint256Scan(t *testing.T) {
 			{
 				"min",
 				[]byte{0x0},
-				bigutil.MustBigIntToUint256(new(big.Int).SetBytes([]byte{0x0})),
+				bigutil.MustBigIntToUint256(big.NewInt(0)),
 			},
 			{
 				"max",
@@ -76,7 +75,7 @@ func TestUint256Scan(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				testutil.Equal(t, tc.out, i, cmp.AllowUnexported(bigutil.Uint256{}, big.Int{}))
+				testutil.Equal(t, i.BigInt().Cmp(tc.out.BigInt()), 0)
 			})
 		}
 	})
@@ -129,7 +128,7 @@ func TestUint256UnmarshalJSON(t *testing.T) {
 			{
 				"min",
 				[]byte(`"0x0"`),
-				bigutil.MustBigIntToUint256(new(big.Int).SetBytes([]byte{0x0})),
+				bigutil.MustBigIntToUint256(big.NewInt(0)),
 			},
 			{
 				"max",
@@ -145,7 +144,7 @@ func TestUint256UnmarshalJSON(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				testutil.Equal(t, tc.out, i, cmp.AllowUnexported(bigutil.Uint256{}, big.Int{}))
+				testutil.Equal(t, i.BigInt().Cmp(tc.out.BigInt()), 0)
 			})
 		}
 	})
