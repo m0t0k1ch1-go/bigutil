@@ -90,12 +90,30 @@ func (i Uint256) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
 func (i *Uint256) UnmarshalJSON(b []byte) error {
-	var x ethhexutil.Big
-	if err := json.Unmarshal(b, &x); err != nil {
-		return err
-	}
+	if b[0] == '"' && b[len(b)-1] == '"' {
+		if len(b) >= 4 && b[1] == '0' && b[2] == 'x' {
+			var x ethhexutil.Big
+			if err := json.Unmarshal(b, &x); err != nil {
+				return err
+			}
 
-	return i.setBigInt(x.ToInt())
+			return i.setBigInt(x.ToInt())
+		} else {
+			var x big.Int
+			if err := json.Unmarshal(b[1:len(b)-1], &x); err != nil {
+				return err
+			}
+
+			return i.setBigInt(&x)
+		}
+	} else {
+		var x big.Int
+		if err := json.Unmarshal(b, &x); err != nil {
+			return err
+		}
+
+		return i.setBigInt(&x)
+	}
 }
 
 func (i Uint256) string() string {
