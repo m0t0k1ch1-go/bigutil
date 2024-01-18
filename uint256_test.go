@@ -3,7 +3,6 @@ package bigutil_test
 import (
 	"database/sql/driver"
 	"encoding/json"
-	"math/big"
 	"testing"
 
 	ethmath "github.com/ethereum/go-ethereum/common/math"
@@ -26,7 +25,7 @@ func TestUint256Value(t *testing.T) {
 			},
 			{
 				"min",
-				bigutil.MustBigIntToUint256(big.NewInt(0)),
+				bigutil.MustHexToUint256("0x0"),
 				[]byte{0x0},
 			},
 			{
@@ -59,7 +58,7 @@ func TestUint256Scan(t *testing.T) {
 			{
 				"min",
 				[]byte{0x0},
-				bigutil.MustBigIntToUint256(big.NewInt(0)),
+				bigutil.MustHexToUint256("0x0"),
 			},
 			{
 				"max",
@@ -95,7 +94,7 @@ func TestUint256MarshalJSON(t *testing.T) {
 			},
 			{
 				"min",
-				bigutil.MustBigIntToUint256(big.NewInt(0)),
+				bigutil.MustHexToUint256("0x0"),
 				[]byte(`"0x0"`),
 			},
 			{
@@ -128,7 +127,7 @@ func TestUint256UnmarshalJSON(t *testing.T) {
 			{
 				"min (hexadecimal string)",
 				[]byte(`"0x0"`),
-				bigutil.MustBigIntToUint256(big.NewInt(0)),
+				bigutil.MustHexToUint256("0x0"),
 			},
 			{
 				"max (hexadecimal string)",
@@ -138,7 +137,7 @@ func TestUint256UnmarshalJSON(t *testing.T) {
 			{
 				"min (decimal string)",
 				[]byte(`"0"`),
-				bigutil.MustBigIntToUint256(big.NewInt(0)),
+				bigutil.MustHexToUint256("0x0"),
 			},
 			{
 				"max (decimal string)",
@@ -148,7 +147,7 @@ func TestUint256UnmarshalJSON(t *testing.T) {
 			{
 				"min (number)",
 				[]byte(`0`),
-				bigutil.MustBigIntToUint256(big.NewInt(0)),
+				bigutil.MustHexToUint256("0x0"),
 			},
 			{
 				"max (number)",
