@@ -19,7 +19,28 @@ type Uint256 struct {
 	x big.Int
 }
 
-// BigIntToUint256 returns the Uint256 that wraps the given big.Int.
+// HexToUint256 converts the given hex string to Uint256.
+func HexToUint256(s string) (Uint256, error) {
+	x, err := ethhexutil.DecodeBig(s)
+	if err != nil {
+		return Uint256{}, err
+	}
+
+	return BigIntToUint256(x)
+}
+
+// MustHexToUint256 converts the given hex string to Uint256.
+// It panics for invalid input.
+func MustHexToUint256(s string) Uint256 {
+	i, err := HexToUint256(s)
+	if err != nil {
+		panic(err)
+	}
+
+	return i
+}
+
+// BigIntToUint256 converts the given big.Int to Uint256.
 func BigIntToUint256(x *big.Int) (Uint256, error) {
 	i := Uint256{}
 
@@ -30,7 +51,7 @@ func BigIntToUint256(x *big.Int) (Uint256, error) {
 	return i, nil
 }
 
-// MustBigIntToUint256 returns the Uint256 that wraps the given big.Int.
+// MustBigIntToUint256 converts the given big.Int to Uint256.
 // It panics for invalid input.
 func MustBigIntToUint256(x *big.Int) Uint256 {
 	i, err := BigIntToUint256(x)
