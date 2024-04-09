@@ -19,6 +19,11 @@ type Uint256 struct {
 	x big.Int
 }
 
+// Uint64ToUint256 converts the given uint64 to Uint256.
+func Uint64ToUint256(i uint64) Uint256 {
+	return MustBigIntToUint256(new(big.Int).SetUint64(i))
+}
+
 // HexToUint256 converts the given hex string to Uint256.
 func HexToUint256(s string) (Uint256, error) {
 	x, err := ethhexutil.DecodeBig(s)
