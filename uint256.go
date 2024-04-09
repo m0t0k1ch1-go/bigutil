@@ -2,7 +2,6 @@ package bigutil
 
 import (
 	"database/sql/driver"
-	"encoding/json"
 	"math/big"
 
 	ethhexutil "github.com/ethereum/go-ethereum/common/hexutil"
@@ -109,37 +108,41 @@ func (i *Uint256) Scan(src any) error {
 	return nil
 }
 
-// MarshalJSON implements the json.Marshaler interface.
-func (i Uint256) MarshalJSON() ([]byte, error) {
-	return json.Marshal(i.string())
+// MarshalText implements the encoding.TextMarshaler interface.
+func (i Uint256) MarshalText() ([]byte, error) {
+	return []byte(i.string()), nil
+}
+
+// UnmarshalText implements the encoding.TextUnmarshaler interface.
+func (i *Uint256) UnmarshalText(text []byte) error {
+	if len(text) >= 2 && text[0] == '0' && text[1] == 'x' {
+		var x ethhexutil.Big
+		{
+			if err := x.UnmarshalText(text); err != nil {
+				return err
+			}
+		}
+
+		return i.setBigInt(x.ToInt())
+	} else {
+		var x big.Int
+		{
+			if err := x.UnmarshalText(text); err != nil {
+				return err
+			}
+		}
+
+		return i.setBigInt(&x)
+	}
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
 func (i *Uint256) UnmarshalJSON(b []byte) error {
 	if b[0] == '"' && b[len(b)-1] == '"' {
-		if len(b) >= 4 && b[1] == '0' && b[2] == 'x' {
-			var x ethhexutil.Big
-			if err := json.Unmarshal(b, &x); err != nil {
-				return err
-			}
-
-			return i.setBigInt(x.ToInt())
-		} else {
-			var x big.Int
-			if err := json.Unmarshal(b[1:len(b)-1], &x); err != nil {
-				return err
-			}
-
-			return i.setBigInt(&x)
-		}
-	} else {
-		var x big.Int
-		if err := json.Unmarshal(b, &x); err != nil {
-			return err
-		}
-
-		return i.setBigInt(&x)
+		b = b[1 : len(b)-1]
 	}
+
+	return i.UnmarshalText(b)
 }
 
 func (i Uint256) string() string {
