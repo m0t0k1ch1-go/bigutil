@@ -25,7 +25,7 @@ func TestUint256Value(t *testing.T) {
 			},
 			{
 				"min",
-				bigutil.MustHexToUint256("0x0"),
+				bigutil.Uint64ToUint256(0),
 				[]byte{0x0},
 			},
 			{
@@ -58,7 +58,7 @@ func TestUint256Scan(t *testing.T) {
 			{
 				"min",
 				[]byte{0x0},
-				bigutil.MustHexToUint256("0x0"),
+				bigutil.Uint64ToUint256(0),
 			},
 			{
 				"max",
@@ -94,7 +94,7 @@ func TestUint256MarshalJSON(t *testing.T) {
 			},
 			{
 				"min",
-				bigutil.MustHexToUint256("0x0"),
+				bigutil.Uint64ToUint256(0),
 				[]byte(`"0x0"`),
 			},
 			{
@@ -127,7 +127,7 @@ func TestUint256UnmarshalJSON(t *testing.T) {
 			{
 				"min (hexadecimal string)",
 				[]byte(`"0x0"`),
-				bigutil.MustHexToUint256("0x0"),
+				bigutil.Uint64ToUint256(0),
 			},
 			{
 				"max (hexadecimal string)",
@@ -137,7 +137,7 @@ func TestUint256UnmarshalJSON(t *testing.T) {
 			{
 				"min (decimal string)",
 				[]byte(`"0"`),
-				bigutil.MustHexToUint256("0x0"),
+				bigutil.Uint64ToUint256(0),
 			},
 			{
 				"max (decimal string)",
@@ -147,7 +147,7 @@ func TestUint256UnmarshalJSON(t *testing.T) {
 			{
 				"min (number)",
 				[]byte(`0`),
-				bigutil.MustHexToUint256("0x0"),
+				bigutil.Uint64ToUint256(0),
 			},
 			{
 				"max (number)",
