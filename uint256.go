@@ -5,7 +5,7 @@ import (
 	"math/big"
 
 	ethhexutil "github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/pkg/errors"
+	"github.com/samber/oops"
 )
 
 const (
@@ -89,18 +89,18 @@ func (i Uint256) Value() (driver.Value, error) {
 // Scan implements the sql.Scanner interface.
 func (i *Uint256) Scan(src any) error {
 	if src == nil {
-		return errors.New("src must not be nil")
+		return oops.Errorf("src must not be nil")
 	}
 
 	b, ok := src.([]byte)
 	if !ok {
-		return errors.Errorf("unexpected src type: %T", src)
+		return oops.Errorf("unexpected src type: %T", src)
 	}
 	if len(b) == 0 {
-		return errors.New("src must not be empty")
+		return oops.Errorf("src must not be empty")
 	}
 	if len(b) > maxByteLength {
-		return errors.Errorf("src must be less than or equal to %d bytes", maxByteLength)
+		return oops.Errorf("src must be less than or equal to %d bytes", maxByteLength)
 	}
 
 	i.x.SetBytes(b)
@@ -151,10 +151,10 @@ func (i Uint256) string() string {
 
 func (i *Uint256) setBigInt(x *big.Int) error {
 	if x.Sign() < 0 {
-		return errors.New("must be positive")
+		return oops.Errorf("must be positive")
 	}
 	if x.BitLen() > maxBitLength {
-		return errors.Errorf("must be less than or equal to %d bits", maxBitLength)
+		return oops.Errorf("must be less than or equal to %d bits", maxBitLength)
 	}
 
 	i.x = *x
