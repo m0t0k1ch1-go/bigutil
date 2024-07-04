@@ -130,6 +130,21 @@ func TestUint256UnmarshalJSON(t *testing.T) {
 				bigutil.Uint64ToUint256(0),
 			},
 			{
+				"min (hexadecimal string with leading zero digits)",
+				[]byte(`"0x0000000000000000000000000000000000000000000000000000000000000000"`),
+				bigutil.Uint64ToUint256(0),
+			},
+			{
+				"one (hexadecimal string)",
+				[]byte(`"0x1"`),
+				bigutil.Uint64ToUint256(1),
+			},
+			{
+				"one (hexadecimal string with leading zero digits)",
+				[]byte(`"0x0000000000000000000000000000000000000000000000000000000000000001"`),
+				bigutil.Uint64ToUint256(1),
+			},
+			{
 				"max (hexadecimal string)",
 				[]byte(`"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"`),
 				bigutil.MustBigIntToUint256(ethmath.MaxBig256),

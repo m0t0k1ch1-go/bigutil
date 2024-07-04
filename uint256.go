@@ -115,25 +115,43 @@ func (i Uint256) MarshalText() ([]byte, error) {
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
 func (i *Uint256) UnmarshalText(text []byte) error {
-	if len(text) >= 2 && text[0] == '0' && text[1] == 'x' {
-		var x ethhexutil.Big
-		{
+	x := new(big.Int)
+	{
+		var err error
+
+		if l := len(text); l >= 2 && text[0] == '0' && text[1] == 'x' {
+			if l == 2 {
+				return oops.Errorf("must not be empty")
+			}
+
+			var textWithoutLeadingZeroDigits []byte
+			{
+				for idx, c := range text[2:] {
+					if c == '0' {
+						continue
+					}
+
+					textWithoutLeadingZeroDigits = append([]byte{'0', 'x'}, text[2+idx:]...)
+
+					break
+				}
+
+				if len(textWithoutLeadingZeroDigits) == 0 {
+					textWithoutLeadingZeroDigits = []byte{'0', 'x', '0'}
+				}
+			}
+
+			if x, err = ethhexutil.DecodeBig(string(textWithoutLeadingZeroDigits)); err != nil {
+				return err
+			}
+		} else {
 			if err := x.UnmarshalText(text); err != nil {
 				return err
 			}
 		}
-
-		return i.setBigInt(x.ToInt())
-	} else {
-		var x big.Int
-		{
-			if err := x.UnmarshalText(text); err != nil {
-				return err
-			}
-		}
-
-		return i.setBigInt(&x)
 	}
+
+	return i.setBigInt(x)
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
