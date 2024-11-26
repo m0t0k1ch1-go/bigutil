@@ -5,7 +5,7 @@ go 1.22
 require (
 	github.com/ethereum/go-ethereum v1.14.12
 	github.com/samber/oops v1.14.1
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 )
 
 require (
