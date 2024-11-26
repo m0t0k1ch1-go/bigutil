@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	ethmath "github.com/ethereum/go-ethereum/common/math"
+	"github.com/stretchr/testify/require"
 
 	"github.com/m0t0k1ch1-go/bigutil/v2"
-	"github.com/m0t0k1ch1-go/bigutil/v2/internal/testutil"
 )
 
 func TestUint256Value(t *testing.T) {
@@ -38,11 +38,9 @@ func TestUint256Value(t *testing.T) {
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
 				v, err := tc.in.Value()
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.Nil(t, err)
 
-				testutil.Equal(t, tc.out, v)
+				require.Equal(t, tc.out, v)
 			})
 		}
 	})
@@ -70,11 +68,9 @@ func TestUint256Scan(t *testing.T) {
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
 				var i bigutil.Uint256
-				if err := i.Scan(tc.in); err != nil {
-					t.Fatal(err)
-				}
+				require.Nil(t, i.Scan(tc.in))
 
-				testutil.Equal(t, i.BigInt().Cmp(tc.out.BigInt()), 0)
+				require.Zero(t, i.BigInt().Cmp(tc.out.BigInt()))
 			})
 		}
 	})
@@ -107,11 +103,9 @@ func TestUint256MarshalJSON(t *testing.T) {
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
 				b, err := json.Marshal(tc.in)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.Nil(t, err)
 
-				testutil.Equal(t, tc.out, b)
+				require.Equal(t, tc.out, b)
 			})
 		}
 	})
@@ -174,11 +168,9 @@ func TestUint256UnmarshalJSON(t *testing.T) {
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
 				var i bigutil.Uint256
-				if err := json.Unmarshal(tc.in, &i); err != nil {
-					t.Fatal(err)
-				}
+				require.Nil(t, json.Unmarshal(tc.in, &i))
 
-				testutil.Equal(t, i.BigInt().Cmp(tc.out.BigInt()), 0)
+				require.Zero(t, i.BigInt().Cmp(tc.out.BigInt()))
 			})
 		}
 	})
