@@ -87,10 +87,10 @@ func (x256 *Uint256) Scan(src any) error {
 		return oops.Errorf("unexpected src type: %T", src)
 	}
 	if len(b) == 0 {
-		return oops.New("src must not be empty")
+		return oops.New("src bytes must not be empty")
 	}
 	if len(b) > maxByteLength {
-		return oops.Errorf("src must be less than or equal to %d bytes", maxByteLength)
+		return oops.Errorf("src bytes must be less than or equal to %d bytes", maxByteLength)
 	}
 
 	x256.x.SetBytes(b)
@@ -107,7 +107,7 @@ func (x256 Uint256) MarshalText() ([]byte, error) {
 func (x256 *Uint256) UnmarshalText(text []byte) error {
 	if l := len(text); l >= 2 && text[0] == '0' && text[1] == 'x' {
 		if l == 2 {
-			return oops.New("must not be empty")
+			return oops.New("text must not be 0x")
 		}
 
 		var textWithoutLeadingZeroDigits []byte
@@ -161,10 +161,10 @@ func (x256 Uint256) string() string {
 
 func (x256 *Uint256) setBigInt(x *big.Int) error {
 	if x.Sign() < 0 {
-		return oops.New("must be positive")
+		return oops.New("x must be positive")
 	}
 	if x.BitLen() > maxBitLength {
-		return oops.Errorf("must be less than or equal to %d bits", maxBitLength)
+		return oops.Errorf("x must be less than or equal to %d bits", maxBitLength)
 	}
 
 	x256.x = *x
