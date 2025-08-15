@@ -3,6 +3,7 @@ package bigutil_test
 import (
 	"database/sql/driver"
 	"encoding/json"
+	"math/big"
 	"testing"
 
 	ethmath "github.com/ethereum/go-ethereum/common/math"
@@ -10,6 +11,59 @@ import (
 
 	"github.com/m0t0k1ch1-go/bigutil/v3"
 )
+
+func TestNewUint256(t *testing.T) {
+	t.Run("failure", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   *big.Int
+		}{
+			{
+				name: "negative",
+				in:   big.NewInt(-1),
+			},
+			{
+				name: "too large",
+				in:   new(big.Int).Add(ethmath.MaxBig256, big.NewInt(1)),
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				_, err := bigutil.NewUint256(tc.in)
+				require.Error(t, err)
+			})
+		}
+	})
+
+	t.Run("success", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   *big.Int
+			out  bigutil.Uint256
+		}{
+			{
+				name: "min",
+				in:   big.NewInt(1),
+				out:  bigutil.NewUint256FromUint64(1),
+			},
+			{
+				name: "max",
+				in:   ethmath.MaxBig256,
+				out:  bigutil.MustNewUint256(ethmath.MaxBig256),
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				x256, err := bigutil.NewUint256(tc.in)
+				require.NoError(t, err)
+
+				require.Zero(t, x256.BigInt().Cmp(tc.out.BigInt()))
+			})
+		}
+	})
+}
 
 func TestUint256Value(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -47,6 +101,44 @@ func TestUint256Value(t *testing.T) {
 }
 
 func TestUint256Scan(t *testing.T) {
+	t.Run("failure", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   any
+		}{
+			{
+				name: "nil",
+				in:   nil,
+			},
+			{
+				name: "int64",
+				in:   int64(0),
+			},
+			{
+				name: "uint64",
+				in:   uint64(0),
+			},
+			{
+				name: "empty bytes",
+				in:   []byte{},
+			},
+			{
+				name: "too long bytes",
+				in:   []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00},
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				var x256 bigutil.Uint256
+				{
+					err := x256.Scan(tc.in)
+					require.Error(t, err)
+				}
+			})
+		}
+	})
+
 	t.Run("success", func(t *testing.T) {
 		tcs := []struct {
 			name string
@@ -115,6 +207,28 @@ func TestUint256MarshalJSON(t *testing.T) {
 }
 
 func TestUint256UnmarshalJSON(t *testing.T) {
+	t.Run("failure", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   []byte
+		}{
+			{
+				name: `"0x"`,
+				in:   []byte(`"0x"`),
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				var x256 bigutil.Uint256
+				{
+					err := json.Unmarshal(tc.in, &x256)
+					require.Error(t, err)
+				}
+			})
+		}
+	})
+
 	t.Run("success", func(t *testing.T) {
 		tcs := []struct {
 			name string
