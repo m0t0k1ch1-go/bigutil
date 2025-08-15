@@ -140,7 +140,7 @@ func (x256 *Uint256) UnmarshalText(text []byte) error {
 
 		x, err := ethhexutil.DecodeBig(string(textWithoutLeadingZeroDigits))
 		if err != nil {
-			return err
+			return oops.Wrap(err)
 		}
 
 		return x256.setBigInt(x)
@@ -149,7 +149,7 @@ func (x256 *Uint256) UnmarshalText(text []byte) error {
 		x := new(big.Int)
 		{
 			if err := x.UnmarshalText(text); err != nil {
-				return err
+				return oops.Wrap(err)
 			}
 		}
 
