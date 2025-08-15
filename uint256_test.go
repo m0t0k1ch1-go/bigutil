@@ -65,6 +65,55 @@ func TestNewUint256(t *testing.T) {
 	})
 }
 
+func TestNewUint256FromHex(t *testing.T) {
+	t.Run("failure", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   string
+		}{
+			{
+				name: "0x",
+				in:   "0x",
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				_, err := bigutil.NewUint256FromHex(tc.in)
+				require.Error(t, err)
+			})
+		}
+	})
+
+	t.Run("success", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   string
+			out  bigutil.Uint256
+		}{
+			{
+				name: "min",
+				in:   "0x0",
+				out:  bigutil.NewUint256FromUint64(0),
+			},
+			{
+				name: "max",
+				in:   "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+				out:  bigutil.MustNewUint256(ethmath.MaxBig256),
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				x256, err := bigutil.NewUint256FromHex(tc.in)
+				require.NoError(t, err)
+
+				require.Zero(t, x256.BigInt().Cmp(tc.out.BigInt()))
+			})
+		}
+	})
+}
+
 func TestUint256Value(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		tcs := []struct {
