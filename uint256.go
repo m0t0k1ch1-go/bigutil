@@ -20,7 +20,7 @@ type Uint256 struct {
 
 // NewUint256 returns a new Uint256.
 func NewUint256(x *big.Int) (Uint256, error) {
-	x256 := Uint256{}
+	var x256 Uint256
 	{
 		if err := x256.setBigInt(x); err != nil {
 			return Uint256{}, err
@@ -48,12 +48,14 @@ func NewUint256FromUint64(i uint64) Uint256 {
 
 // NewUint256FromHex returns a new Uint256 from a hexadecimal string.
 func NewUint256FromHex(s string) (Uint256, error) {
-	x, err := ethhexutil.DecodeBig(s)
-	if err != nil {
-		return Uint256{}, err
+	var x256 Uint256
+	{
+		if err := x256.setHex(s); err != nil {
+			return Uint256{}, err
+		}
 	}
 
-	return NewUint256(x)
+	return x256, nil
 }
 
 // MustNewUint256FromHex returns a new Uint256 from a hexadecimal string.
@@ -116,34 +118,8 @@ func (x256 Uint256) MarshalText() ([]byte, error) {
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
 func (x256 *Uint256) UnmarshalText(text []byte) error {
-	if l := len(text); l >= 2 && text[0] == '0' && text[1] == 'x' {
-		if l == 2 {
-			return oops.New("text must not be 0x")
-		}
-
-		var textWithoutLeadingZeroDigits []byte
-		{
-			for idx, c := range text[2:] {
-				if c == '0' {
-					continue
-				}
-
-				textWithoutLeadingZeroDigits = append([]byte{'0', 'x'}, text[2+idx:]...)
-
-				break
-			}
-
-			if len(textWithoutLeadingZeroDigits) == 0 {
-				textWithoutLeadingZeroDigits = []byte{'0', 'x', '0'}
-			}
-		}
-
-		x, err := ethhexutil.DecodeBig(string(textWithoutLeadingZeroDigits))
-		if err != nil {
-			return oops.Wrap(err)
-		}
-
-		return x256.setBigInt(x)
+	if has0xPrefix(string(text)) {
+		return x256.setHex(string(text))
 
 	} else {
 		x := new(big.Int)
@@ -181,4 +157,39 @@ func (x256 *Uint256) setBigInt(x *big.Int) error {
 	x256.x = *x
 
 	return nil
+}
+
+func (x256 *Uint256) setHex(s string) error {
+	if !has0xPrefix(s) {
+		return oops.New("s must have 0x prefix")
+	}
+	if is0x(s) {
+		return oops.New("s must not be 0x")
+	}
+
+	var b []byte
+	{
+		b = append(b, '0', 'x')
+
+		for idx, c := range s[2:] {
+			if c == '0' {
+				continue
+			}
+
+			b = append(b, s[2+idx:]...)
+
+			break
+		}
+
+		if is0x(string(b)) {
+			b = append(b, '0')
+		}
+	}
+
+	x, err := ethhexutil.DecodeBig(string(b))
+	if err != nil {
+		return oops.Wrap(err)
+	}
+
+	return x256.setBigInt(x)
 }

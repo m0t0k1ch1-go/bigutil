@@ -19,12 +19,12 @@ func TestNewUint256(t *testing.T) {
 			in   *big.Int
 		}{
 			{
-				name: "negative",
-				in:   big.NewInt(-1),
+				"negative",
+				big.NewInt(-1),
 			},
 			{
-				name: "too large",
-				in:   new(big.Int).Add(ethmath.MaxBig256, big.NewInt(1)),
+				"too large",
+				new(big.Int).Add(ethmath.MaxBig256, big.NewInt(1)),
 			},
 		}
 
@@ -43,20 +43,84 @@ func TestNewUint256(t *testing.T) {
 			out  bigutil.Uint256
 		}{
 			{
-				name: "min",
-				in:   big.NewInt(1),
-				out:  bigutil.NewUint256FromUint64(1),
+				"zero",
+				big.NewInt(0),
+				bigutil.NewUint256FromUint64(0),
 			},
 			{
-				name: "max",
-				in:   ethmath.MaxBig256,
-				out:  bigutil.MustNewUint256(ethmath.MaxBig256),
+				"max",
+				ethmath.MaxBig256,
+				bigutil.MustNewUint256(ethmath.MaxBig256),
 			},
 		}
 
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
 				x256, err := bigutil.NewUint256(tc.in)
+				require.NoError(t, err)
+
+				require.Zero(t, x256.BigInt().Cmp(tc.out.BigInt()))
+			})
+		}
+	})
+}
+
+func TestNewUint256FromHex(t *testing.T) {
+	t.Run("failure", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   string
+		}{
+			{
+				"0x",
+				"0x",
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				_, err := bigutil.NewUint256FromHex(tc.in)
+				require.Error(t, err)
+			})
+		}
+	})
+
+	t.Run("success", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   string
+			out  bigutil.Uint256
+		}{
+			{
+				"zero",
+				"0x0",
+				bigutil.NewUint256FromUint64(0),
+			},
+			{
+				"zero (with leading zero digits)",
+				"0x0000000000000000000000000000000000000000000000000000000000000000",
+				bigutil.NewUint256FromUint64(0),
+			},
+			{
+				"one",
+				"0x1",
+				bigutil.NewUint256FromUint64(1),
+			},
+			{
+				"one (with leading zero digits)",
+				"0x0000000000000000000000000000000000000000000000000000000000000001",
+				bigutil.NewUint256FromUint64(1),
+			},
+			{
+				"max",
+				"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+				bigutil.MustNewUint256(ethmath.MaxBig256),
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				x256, err := bigutil.NewUint256FromHex(tc.in)
 				require.NoError(t, err)
 
 				require.Zero(t, x256.BigInt().Cmp(tc.out.BigInt()))
@@ -78,7 +142,7 @@ func TestUint256Value(t *testing.T) {
 				[]byte{0x0},
 			},
 			{
-				"min",
+				"zero",
 				bigutil.NewUint256FromUint64(0),
 				[]byte{0x0},
 			},
@@ -107,24 +171,24 @@ func TestUint256Scan(t *testing.T) {
 			in   any
 		}{
 			{
-				name: "nil",
-				in:   nil,
+				"nil",
+				nil,
 			},
 			{
-				name: "int64",
-				in:   int64(0),
+				"int64",
+				int64(0),
 			},
 			{
-				name: "uint64",
-				in:   uint64(0),
+				"uint64",
+				uint64(0),
 			},
 			{
-				name: "empty bytes",
-				in:   []byte{},
+				"empty bytes",
+				[]byte{},
 			},
 			{
-				name: "too long bytes",
-				in:   []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00},
+				"too long bytes",
+				[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00},
 			},
 		}
 
@@ -146,7 +210,7 @@ func TestUint256Scan(t *testing.T) {
 			out  bigutil.Uint256
 		}{
 			{
-				"min",
+				"zero",
 				[]byte{0x0},
 				bigutil.NewUint256FromUint64(0),
 			},
@@ -184,7 +248,7 @@ func TestUint256MarshalJSON(t *testing.T) {
 				[]byte(`"0x0"`),
 			},
 			{
-				"min",
+				"zero",
 				bigutil.NewUint256FromUint64(0),
 				[]byte(`"0x0"`),
 			},
@@ -213,8 +277,8 @@ func TestUint256UnmarshalJSON(t *testing.T) {
 			in   []byte
 		}{
 			{
-				name: `"0x"`,
-				in:   []byte(`"0x"`),
+				"0x",
+				[]byte(`"0x"`),
 			},
 		}
 
@@ -236,12 +300,12 @@ func TestUint256UnmarshalJSON(t *testing.T) {
 			out  bigutil.Uint256
 		}{
 			{
-				"min (hexadecimal string)",
+				"zero (hexadecimal string)",
 				[]byte(`"0x0"`),
 				bigutil.NewUint256FromUint64(0),
 			},
 			{
-				"min (hexadecimal string with leading zero digits)",
+				"zero (hexadecimal string with leading zero digits)",
 				[]byte(`"0x0000000000000000000000000000000000000000000000000000000000000000"`),
 				bigutil.NewUint256FromUint64(0),
 			},
@@ -261,7 +325,7 @@ func TestUint256UnmarshalJSON(t *testing.T) {
 				bigutil.MustNewUint256(ethmath.MaxBig256),
 			},
 			{
-				"min (decimal string)",
+				"zero (decimal string)",
 				[]byte(`"0"`),
 				bigutil.NewUint256FromUint64(0),
 			},
@@ -271,7 +335,7 @@ func TestUint256UnmarshalJSON(t *testing.T) {
 				bigutil.MustNewUint256(ethmath.MaxBig256),
 			},
 			{
-				"min (number)",
+				"zero (number)",
 				[]byte(`0`),
 				bigutil.NewUint256FromUint64(0),
 			},
