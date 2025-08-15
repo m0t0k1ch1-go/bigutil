@@ -8,7 +8,7 @@ import (
 	ethmath "github.com/ethereum/go-ethereum/common/math"
 	"github.com/stretchr/testify/require"
 
-	"github.com/m0t0k1ch1-go/bigutil/v2"
+	"github.com/m0t0k1ch1-go/bigutil/v3"
 )
 
 func TestUint256Value(t *testing.T) {
@@ -25,12 +25,12 @@ func TestUint256Value(t *testing.T) {
 			},
 			{
 				"min",
-				bigutil.Uint64ToUint256(0),
+				bigutil.NewUint256FromUint64(0),
 				[]byte{0x0},
 			},
 			{
 				"max",
-				bigutil.MustBigIntToUint256(ethmath.MaxBig256),
+				bigutil.MustNewUint256(ethmath.MaxBig256),
 				[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 			},
 		}
@@ -56,12 +56,12 @@ func TestUint256Scan(t *testing.T) {
 			{
 				"min",
 				[]byte{0x0},
-				bigutil.Uint64ToUint256(0),
+				bigutil.NewUint256FromUint64(0),
 			},
 			{
 				"max",
 				[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
-				bigutil.MustBigIntToUint256(ethmath.MaxBig256),
+				bigutil.MustNewUint256(ethmath.MaxBig256),
 			},
 		}
 
@@ -93,12 +93,12 @@ func TestUint256MarshalJSON(t *testing.T) {
 			},
 			{
 				"min",
-				bigutil.Uint64ToUint256(0),
+				bigutil.NewUint256FromUint64(0),
 				[]byte(`"0x0"`),
 			},
 			{
 				"max",
-				bigutil.MustBigIntToUint256(ethmath.MaxBig256),
+				bigutil.MustNewUint256(ethmath.MaxBig256),
 				[]byte(`"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"`),
 			},
 		}
@@ -124,47 +124,47 @@ func TestUint256UnmarshalJSON(t *testing.T) {
 			{
 				"min (hexadecimal string)",
 				[]byte(`"0x0"`),
-				bigutil.Uint64ToUint256(0),
+				bigutil.NewUint256FromUint64(0),
 			},
 			{
 				"min (hexadecimal string with leading zero digits)",
 				[]byte(`"0x0000000000000000000000000000000000000000000000000000000000000000"`),
-				bigutil.Uint64ToUint256(0),
+				bigutil.NewUint256FromUint64(0),
 			},
 			{
 				"one (hexadecimal string)",
 				[]byte(`"0x1"`),
-				bigutil.Uint64ToUint256(1),
+				bigutil.NewUint256FromUint64(1),
 			},
 			{
 				"one (hexadecimal string with leading zero digits)",
 				[]byte(`"0x0000000000000000000000000000000000000000000000000000000000000001"`),
-				bigutil.Uint64ToUint256(1),
+				bigutil.NewUint256FromUint64(1),
 			},
 			{
 				"max (hexadecimal string)",
 				[]byte(`"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"`),
-				bigutil.MustBigIntToUint256(ethmath.MaxBig256),
+				bigutil.MustNewUint256(ethmath.MaxBig256),
 			},
 			{
 				"min (decimal string)",
 				[]byte(`"0"`),
-				bigutil.Uint64ToUint256(0),
+				bigutil.NewUint256FromUint64(0),
 			},
 			{
 				"max (decimal string)",
 				[]byte(`"115792089237316195423570985008687907853269984665640564039457584007913129639935"`),
-				bigutil.MustBigIntToUint256(ethmath.MaxBig256),
+				bigutil.MustNewUint256(ethmath.MaxBig256),
 			},
 			{
 				"min (number)",
 				[]byte(`0`),
-				bigutil.Uint64ToUint256(0),
+				bigutil.NewUint256FromUint64(0),
 			},
 			{
 				"max (number)",
 				[]byte(`115792089237316195423570985008687907853269984665640564039457584007913129639935`),
-				bigutil.MustBigIntToUint256(ethmath.MaxBig256),
+				bigutil.MustNewUint256(ethmath.MaxBig256),
 			},
 		}
 

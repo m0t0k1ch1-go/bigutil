@@ -18,34 +18,8 @@ type Uint256 struct {
 	x big.Int
 }
 
-// Uint64ToUint256 converts the given uint64 to Uint256.
-func Uint64ToUint256(i uint64) Uint256 {
-	return MustBigIntToUint256(new(big.Int).SetUint64(i))
-}
-
-// HexToUint256 converts the given hex string to Uint256.
-func HexToUint256(s string) (Uint256, error) {
-	x, err := ethhexutil.DecodeBig(s)
-	if err != nil {
-		return Uint256{}, err
-	}
-
-	return BigIntToUint256(x)
-}
-
-// MustHexToUint256 converts the given hex string to Uint256.
-// It panics for invalid input.
-func MustHexToUint256(s string) Uint256 {
-	x256, err := HexToUint256(s)
-	if err != nil {
-		panic(err)
-	}
-
-	return x256
-}
-
-// BigIntToUint256 converts the given big.Int to Uint256.
-func BigIntToUint256(x *big.Int) (Uint256, error) {
+// NewUint256 returns a new Uint256.
+func NewUint256(x *big.Int) (Uint256, error) {
 	x256 := Uint256{}
 	{
 		if err := x256.setBigInt(x); err != nil {
@@ -56,15 +30,30 @@ func BigIntToUint256(x *big.Int) (Uint256, error) {
 	return x256, nil
 }
 
-// MustBigIntToUint256 converts the given big.Int to Uint256.
+// MustNewUint256 returns a new Uint256.
 // It panics for invalid input.
-func MustBigIntToUint256(x *big.Int) Uint256 {
-	x256, err := BigIntToUint256(x)
+func MustNewUint256(x *big.Int) Uint256 {
+	x256, err := NewUint256(x)
 	if err != nil {
 		panic(err)
 	}
 
 	return x256
+}
+
+// NewUint256FromUint64 returns a new Uint256 from a uint64.
+func NewUint256FromUint64(i uint64) Uint256 {
+	return MustNewUint256(new(big.Int).SetUint64(i))
+}
+
+// NewUint256FromHex returns a new Uint256 from a hex string.
+func NewUint256FromHex(s string) (Uint256, error) {
+	x, err := ethhexutil.DecodeBig(s)
+	if err != nil {
+		return Uint256{}, err
+	}
+
+	return NewUint256(x)
 }
 
 // BigInt returns the big.Int.
