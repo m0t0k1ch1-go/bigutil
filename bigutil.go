@@ -1,9 +1,13 @@
 package bigutil
 
+import (
+	"strings"
+)
+
 func is0x(s string) bool {
-	return len(s) == 2 && s[0] == '0' && s[1] == 'x'
+	return s == "0x"
 }
 
 func has0xPrefix(s string) bool {
-	return len(s) >= 2 && is0x(s[:2])
+	return strings.HasPrefix(s, "0x")
 }
