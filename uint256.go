@@ -20,7 +20,7 @@ type Uint256 struct {
 
 // NewUint256 returns a new Uint256.
 func NewUint256(x *big.Int) (Uint256, error) {
-	x256 := Uint256{}
+	var x256 Uint256
 	{
 		if err := x256.setBigInt(x); err != nil {
 			return Uint256{}, err
@@ -48,7 +48,7 @@ func NewUint256FromUint64(i uint64) Uint256 {
 
 // NewUint256FromHex returns a new Uint256 from a hexadecimal string.
 func NewUint256FromHex(s string) (Uint256, error) {
-	x256 := Uint256{}
+	var x256 Uint256
 	{
 		if err := x256.setHex(s); err != nil {
 			return Uint256{}, err
