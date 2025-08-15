@@ -46,7 +46,7 @@ func NewUint256FromUint64(i uint64) Uint256 {
 	return MustNewUint256(new(big.Int).SetUint64(i))
 }
 
-// NewUint256FromHex returns a new Uint256 from a hex string.
+// NewUint256FromHex returns a new Uint256 from a hexadecimal string.
 func NewUint256FromHex(s string) (Uint256, error) {
 	x, err := ethhexutil.DecodeBig(s)
 	if err != nil {
@@ -54,6 +54,17 @@ func NewUint256FromHex(s string) (Uint256, error) {
 	}
 
 	return NewUint256(x)
+}
+
+// MustNewUint256FromHex returns a new Uint256 from a hexadecimal string.
+// It panics for invalid input.
+func MustNewUint256FromHex(s string) Uint256 {
+	x256, err := NewUint256FromHex(s)
+	if err != nil {
+		panic(err)
+	}
+
+	return x256
 }
 
 // BigInt returns the big.Int.
