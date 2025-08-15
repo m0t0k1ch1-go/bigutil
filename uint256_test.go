@@ -44,8 +44,8 @@ func TestNewUint256(t *testing.T) {
 		}{
 			{
 				name: "min",
-				in:   big.NewInt(1),
-				out:  bigutil.NewUint256FromUint64(1),
+				in:   big.NewInt(0),
+				out:  bigutil.NewUint256FromUint64(0),
 			},
 			{
 				name: "max",
