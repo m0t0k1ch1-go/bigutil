@@ -36,49 +36,50 @@ func HexToUint256(s string) (Uint256, error) {
 // MustHexToUint256 converts the given hex string to Uint256.
 // It panics for invalid input.
 func MustHexToUint256(s string) Uint256 {
-	i, err := HexToUint256(s)
+	x256, err := HexToUint256(s)
 	if err != nil {
 		panic(err)
 	}
 
-	return i
+	return x256
 }
 
 // BigIntToUint256 converts the given big.Int to Uint256.
 func BigIntToUint256(x *big.Int) (Uint256, error) {
-	i := Uint256{}
-
-	if err := i.setBigInt(x); err != nil {
-		return Uint256{}, err
+	x256 := Uint256{}
+	{
+		if err := x256.setBigInt(x); err != nil {
+			return Uint256{}, err
+		}
 	}
 
-	return i, nil
+	return x256, nil
 }
 
 // MustBigIntToUint256 converts the given big.Int to Uint256.
 // It panics for invalid input.
 func MustBigIntToUint256(x *big.Int) Uint256 {
-	i, err := BigIntToUint256(x)
+	x256, err := BigIntToUint256(x)
 	if err != nil {
 		panic(err)
 	}
 
-	return i
+	return x256
 }
 
 // BigInt returns the big.Int.
-func (i Uint256) BigInt() *big.Int {
-	return &i.x
+func (x256 Uint256) BigInt() *big.Int {
+	return &x256.x
 }
 
 // String implements the fmt.Stringer interface.
-func (i Uint256) String() string {
-	return i.string()
+func (x256 Uint256) String() string {
+	return x256.string()
 }
 
 // Value implements the driver.Valuer interface.
-func (i Uint256) Value() (driver.Value, error) {
-	b := i.x.Bytes()
+func (x256 Uint256) Value() (driver.Value, error) {
+	b := x256.x.Bytes()
 	if len(b) == 0 {
 		b = []byte{0x0}
 	}
@@ -87,9 +88,9 @@ func (i Uint256) Value() (driver.Value, error) {
 }
 
 // Scan implements the sql.Scanner interface.
-func (i *Uint256) Scan(src any) error {
+func (x256 *Uint256) Scan(src any) error {
 	if src == nil {
-		return oops.Errorf("src must not be nil")
+		return oops.New("src must not be nil")
 	}
 
 	b, ok := src.([]byte)
@@ -97,85 +98,87 @@ func (i *Uint256) Scan(src any) error {
 		return oops.Errorf("unexpected src type: %T", src)
 	}
 	if len(b) == 0 {
-		return oops.Errorf("src must not be empty")
+		return oops.New("src must not be empty")
 	}
 	if len(b) > maxByteLength {
 		return oops.Errorf("src must be less than or equal to %d bytes", maxByteLength)
 	}
 
-	i.x.SetBytes(b)
+	x256.x.SetBytes(b)
 
 	return nil
 }
 
 // MarshalText implements the encoding.TextMarshaler interface.
-func (i Uint256) MarshalText() ([]byte, error) {
-	return []byte(i.string()), nil
+func (x256 Uint256) MarshalText() ([]byte, error) {
+	return []byte(x256.string()), nil
 }
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
-func (i *Uint256) UnmarshalText(text []byte) error {
-	x := new(big.Int)
-	{
-		var err error
+func (x256 *Uint256) UnmarshalText(text []byte) error {
+	if l := len(text); l >= 2 && text[0] == '0' && text[1] == 'x' {
+		if l == 2 {
+			return oops.New("must not be empty")
+		}
 
-		if l := len(text); l >= 2 && text[0] == '0' && text[1] == 'x' {
-			if l == 2 {
-				return oops.Errorf("must not be empty")
-			}
-
-			var textWithoutLeadingZeroDigits []byte
-			{
-				for idx, c := range text[2:] {
-					if c == '0' {
-						continue
-					}
-
-					textWithoutLeadingZeroDigits = append([]byte{'0', 'x'}, text[2+idx:]...)
-
-					break
+		var textWithoutLeadingZeroDigits []byte
+		{
+			for idx, c := range text[2:] {
+				if c == '0' {
+					continue
 				}
 
-				if len(textWithoutLeadingZeroDigits) == 0 {
-					textWithoutLeadingZeroDigits = []byte{'0', 'x', '0'}
-				}
+				textWithoutLeadingZeroDigits = append([]byte{'0', 'x'}, text[2+idx:]...)
+
+				break
 			}
 
-			if x, err = ethhexutil.DecodeBig(string(textWithoutLeadingZeroDigits)); err != nil {
-				return err
+			if len(textWithoutLeadingZeroDigits) == 0 {
+				textWithoutLeadingZeroDigits = []byte{'0', 'x', '0'}
 			}
-		} else {
+		}
+
+		x, err := ethhexutil.DecodeBig(string(textWithoutLeadingZeroDigits))
+		if err != nil {
+			return err
+		}
+
+		return x256.setBigInt(x)
+
+	} else {
+		x := new(big.Int)
+		{
 			if err := x.UnmarshalText(text); err != nil {
 				return err
 			}
 		}
-	}
 
-	return i.setBigInt(x)
+		return x256.setBigInt(x)
+	}
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
-func (i *Uint256) UnmarshalJSON(b []byte) error {
+func (x256 *Uint256) UnmarshalJSON(b []byte) error {
 	if b[0] == '"' && b[len(b)-1] == '"' {
 		b = b[1 : len(b)-1]
 	}
 
-	return i.UnmarshalText(b)
+	return x256.UnmarshalText(b)
 }
 
-func (i Uint256) string() string {
-	return ethhexutil.EncodeBig(&i.x)
+func (x256 Uint256) string() string {
+	return ethhexutil.EncodeBig(&x256.x)
 }
 
-func (i *Uint256) setBigInt(x *big.Int) error {
+func (x256 *Uint256) setBigInt(x *big.Int) error {
 	if x.Sign() < 0 {
-		return oops.Errorf("must be positive")
+		return oops.New("must be positive")
 	}
 	if x.BitLen() > maxBitLength {
 		return oops.Errorf("must be less than or equal to %d bits", maxBitLength)
 	}
 
-	i.x = *x
+	x256.x = *x
 
 	return nil
 }
