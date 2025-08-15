@@ -172,7 +172,7 @@ func (x256 Uint256) string() string {
 
 func (x256 *Uint256) setBigInt(x *big.Int) error {
 	if x.Sign() < 0 {
-		return oops.New("x must be positive")
+		return oops.New("x must not be negative")
 	}
 	if x.BitLen() > maxBitLength {
 		return oops.Errorf("x must be less than or equal to %d bits", maxBitLength)
