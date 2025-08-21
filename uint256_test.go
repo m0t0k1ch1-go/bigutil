@@ -82,6 +82,49 @@ func TestNewUint256(t *testing.T) {
 	})
 }
 
+func TestMustNewUint256(t *testing.T) {
+	t.Run("panic", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   *big.Int
+			want string
+		}{
+			{
+				"nil",
+				nil,
+				"invalid big.Int: nil",
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				require.PanicsWithError(t, tc.want, func() {
+					bigutil.MustNewUint256(tc.in)
+				})
+			})
+		}
+	})
+
+	t.Run("success", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   *big.Int
+			want string
+		}{
+			{
+				"zero",
+				big.NewInt(0),
+				"0x0",
+			},
+		}
+
+		for _, tc := range tcs {
+			x256 := bigutil.MustNewUint256(tc.in)
+			require.Equal(t, tc.want, x256.String())
+		}
+	})
+}
+
 func TestNewUint256FromHex(t *testing.T) {
 	t.Run("failure", func(t *testing.T) {
 		tcs := []struct {
@@ -182,6 +225,51 @@ func TestNewUint256FromHex(t *testing.T) {
 				x256, err := bigutil.NewUint256FromHex(tc.in)
 				require.NoError(t, err)
 
+				require.Equal(t, tc.want, x256.String())
+			})
+		}
+	})
+}
+
+func TestMustNewUint256FromHex(t *testing.T) {
+	t.Run("panic", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   string
+			want string
+		}{
+			{
+				"empty",
+				"",
+				"invalid hex string: missing 0x/0X prefix",
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				require.PanicsWithError(t, tc.want, func() {
+					bigutil.MustNewUint256FromHex(tc.in)
+				})
+			})
+		}
+	})
+
+	t.Run("success", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   string
+			want string
+		}{
+			{
+				"0x-prefixed zero",
+				"0x0",
+				"0x0",
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				x256 := bigutil.MustNewUint256FromHex(tc.in)
 				require.Equal(t, tc.want, x256.String())
 			})
 		}
