@@ -477,6 +477,45 @@ func TestUint256_JSONMarshal(t *testing.T) {
 	})
 }
 
+func TestUint256_MarshalGQL(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   bigutil.Uint256
+			want string
+		}{
+			{
+				"zero value",
+				bigutil.Uint256{},
+				`"0x0"`,
+			},
+			{
+				"zero",
+				bigutil.NewUint256FromUint64(0),
+				`"0x0"`,
+			},
+			{
+				"one",
+				bigutil.NewUint256FromUint64(1),
+				`"0x1"`,
+			},
+			{
+				"max",
+				bigutil.MustNewUint256(maxUint256),
+				`"0x` + strings.Repeat("f", 64) + `"`,
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				var buf bytes.Buffer
+				tc.in.MarshalGQL(&buf)
+				require.Equal(t, tc.want, buf.String())
+			})
+		}
+	})
+}
+
 func TestUint256_JSONUnmarshal(t *testing.T) {
 	t.Run("failure", func(t *testing.T) {
 		tcs := []struct {
