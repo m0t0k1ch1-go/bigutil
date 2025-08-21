@@ -146,7 +146,7 @@ func (x256 *Uint256) Scan(src any) error {
 		return fmt.Errorf("unsupported source type: %T", src)
 	}
 	if len(b) == 0 {
-		return errors.New("invalid source: empty bytes")
+		return errors.New("invalid source: empty []byte")
 	}
 	if len(b) > maxUint256Bytes {
 		return fmt.Errorf("invalid source: exceeds %d bytes", maxUint256Bytes)
