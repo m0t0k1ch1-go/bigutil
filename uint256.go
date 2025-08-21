@@ -79,11 +79,14 @@ func MustNewUint256FromHex(s string) Uint256 {
 }
 
 func (x256 *Uint256) setHex(s string) error {
+	if len(s) == 0 {
+		return errors.New("invalid hex string: empty")
+	}
 	if !strings.HasPrefix(s, "0x") && !strings.HasPrefix(s, "0X") {
 		return errors.New("invalid hex string: missing 0x/0X prefix")
 	}
 	if s == "0x" || s == "0X" {
-		return errors.New("invalid hex string: empty")
+		return errors.New("invalid hex string: missing hex digits after 0x/0X prefix")
 	}
 
 	hexWithoutPrefix := strings.TrimLeft(s[2:], "0")
@@ -177,6 +180,10 @@ func (x256 Uint256) MarshalGQL(w io.Writer) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 // It accepts either a 0x/0X-prefixed hex string or a non-negative decimal string.
 func (x256 *Uint256) UnmarshalText(text []byte) error {
+	if len(text) == 0 {
+		return errors.New("invalid string: empty")
+	}
+
 	s := string(text)
 	if strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X") {
 		return x256.setHex(s)
