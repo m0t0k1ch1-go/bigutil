@@ -8,10 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	ethmath "github.com/ethereum/go-ethereum/common/math"
 	"github.com/stretchr/testify/require"
 
 	"github.com/m0t0k1ch1-go/bigutil/v3"
+)
+
+var (
+	maxUint256 = new(big.Int).Sub(new(big.Int).Exp(big.NewInt(2), big.NewInt(256), nil), big.NewInt(1))
 )
 
 func TestNewUint256(t *testing.T) {
@@ -33,7 +36,7 @@ func TestNewUint256(t *testing.T) {
 			},
 			{
 				"exceeds 256 bits",
-				new(big.Int).Add(ethmath.MaxBig256, big.NewInt(1)),
+				new(big.Int).Add(maxUint256, big.NewInt(1)),
 				"invalid big.Int: exceeds 256 bits",
 			},
 		}
@@ -64,7 +67,7 @@ func TestNewUint256(t *testing.T) {
 			},
 			{
 				"max",
-				new(big.Int).Set(ethmath.MaxBig256),
+				new(big.Int).Set(maxUint256),
 				"0x" + strings.Repeat("f", 64),
 			},
 		}
@@ -161,7 +164,7 @@ func TestNewUint256FromHex(t *testing.T) {
 			{
 				"exceeds 256 bits",
 				"0x1" + strings.Repeat("0", 64),
-				"invalid hex string",
+				"invalid big.Int: exceeds 256 bits",
 			},
 		}
 
@@ -333,7 +336,7 @@ func TestUint256_Value(t *testing.T) {
 			},
 			{
 				"max",
-				bigutil.MustNewUint256(ethmath.MaxBig256),
+				bigutil.MustNewUint256(maxUint256),
 				bytes.Repeat([]byte{0xff}, 32),
 			},
 		}
@@ -459,7 +462,7 @@ func TestUint256_JSONMarshal(t *testing.T) {
 			},
 			{
 				"max",
-				bigutil.MustNewUint256(ethmath.MaxBig256),
+				bigutil.MustNewUint256(maxUint256),
 				[]byte(`"0x` + strings.Repeat("f", 64) + `"`),
 			},
 		}
@@ -534,7 +537,7 @@ func TestUint256_JSONUnmarshal(t *testing.T) {
 			{
 				"string: hex exceeds 256 bits",
 				[]byte(`"0x1` + strings.Repeat("0", 64) + `"`),
-				"invalid hex string",
+				"invalid big.Int: exceeds 256 bits",
 			},
 		}
 
