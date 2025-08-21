@@ -1,9 +1,11 @@
 package bigutil_test
 
 import (
+	"bytes"
 	"database/sql/driver"
 	"encoding/json"
 	"math/big"
+	"strings"
 	"testing"
 
 	ethmath "github.com/ethereum/go-ethereum/common/math"
@@ -17,21 +19,29 @@ func TestNewUint256(t *testing.T) {
 		tcs := []struct {
 			name string
 			in   *big.Int
+			want string
 		}{
+			{
+				"nil",
+				nil,
+				"invalid big.Int: nil",
+			},
 			{
 				"negative",
 				big.NewInt(-1),
+				"invalid big.Int: negative",
 			},
 			{
-				"too large",
+				"exceeds 256 bits",
 				new(big.Int).Add(ethmath.MaxBig256, big.NewInt(1)),
+				"invalid big.Int: exceeds 256 bits",
 			},
 		}
 
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
 				_, err := bigutil.NewUint256(tc.in)
-				require.Error(t, err)
+				require.ErrorContains(t, err, tc.want)
 			})
 		}
 	})
@@ -40,17 +50,22 @@ func TestNewUint256(t *testing.T) {
 		tcs := []struct {
 			name string
 			in   *big.Int
-			out  bigutil.Uint256
+			want string
 		}{
 			{
 				"zero",
 				big.NewInt(0),
-				bigutil.NewUint256FromUint64(0),
+				"0x0",
+			},
+			{
+				"one",
+				big.NewInt(1),
+				"0x1",
 			},
 			{
 				"max",
-				ethmath.MaxBig256,
-				bigutil.MustNewUint256(ethmath.MaxBig256),
+				new(big.Int).Set(ethmath.MaxBig256),
+				"0x" + strings.Repeat("f", 64),
 			},
 		}
 
@@ -59,7 +74,9 @@ func TestNewUint256(t *testing.T) {
 				x256, err := bigutil.NewUint256(tc.in)
 				require.NoError(t, err)
 
-				require.Zero(t, x256.BigInt().Cmp(tc.out.BigInt()))
+				tc.in.SetInt64(-1)
+
+				require.Equal(t, tc.want, x256.String())
 			})
 		}
 	})
@@ -70,17 +87,44 @@ func TestNewUint256FromHex(t *testing.T) {
 		tcs := []struct {
 			name string
 			in   string
+			want string
 		}{
 			{
+				"empty",
+				"",
+				"invalid hex string: missing 0x/0X prefix",
+			},
+			{
+				"missing 0x/0X prefix",
+				"0",
+				"invalid hex string: missing 0x/0X prefix",
+			},
+			{
+				"only 0x prefix",
 				"0x",
-				"0x",
+				"invalid hex string: empty",
+			},
+			{
+				"only 0X prefix",
+				"0X",
+				"invalid hex string: empty",
+			},
+			{
+				"contains non-hex digit",
+				"0xg",
+				"invalid hex string",
+			},
+			{
+				"exceeds 256 bits",
+				"0x1" + strings.Repeat("0", 64),
+				"invalid hex string",
 			},
 		}
 
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
 				_, err := bigutil.NewUint256FromHex(tc.in)
-				require.Error(t, err)
+				require.ErrorContains(t, err, tc.want)
 			})
 		}
 	})
@@ -89,32 +133,47 @@ func TestNewUint256FromHex(t *testing.T) {
 		tcs := []struct {
 			name string
 			in   string
-			out  bigutil.Uint256
+			want string
 		}{
 			{
-				"zero",
+				"0x-prefixed zero",
 				"0x0",
-				bigutil.NewUint256FromUint64(0),
+				"0x0",
 			},
 			{
-				"zero (with leading zero digits)",
-				"0x0000000000000000000000000000000000000000000000000000000000000000",
-				bigutil.NewUint256FromUint64(0),
+				"0X-prefixed zero",
+				"0X0",
+				"0x0",
 			},
 			{
-				"one",
+				"0x-prefixed zero with leading zeros",
+				"0x" + strings.Repeat("0", 64),
+				"0x0",
+			},
+			{
+				"0X-prefixed zero with leading zeros",
+				"0X" + strings.Repeat("0", 64),
+				"0x0",
+			},
+			{
+				"0x-prefixed one with leading zeros",
+				"0x" + strings.Repeat("0", 63) + "1",
 				"0x1",
-				bigutil.NewUint256FromUint64(1),
 			},
 			{
-				"one (with leading zero digits)",
-				"0x0000000000000000000000000000000000000000000000000000000000000001",
-				bigutil.NewUint256FromUint64(1),
+				"0X-prefixed one with leading zeros",
+				"0X" + strings.Repeat("0", 63) + "1",
+				"0x1",
 			},
 			{
-				"max",
-				"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-				bigutil.MustNewUint256(ethmath.MaxBig256),
+				"0x-prefixed mixedcase max",
+				"0x" + strings.Repeat("fF", 32),
+				"0x" + strings.Repeat("f", 64),
+			},
+			{
+				"0X-prefixed mixedcase max",
+				"0X" + strings.Repeat("fF", 32),
+				"0x" + strings.Repeat("f", 64),
 			},
 		}
 
@@ -123,18 +182,48 @@ func TestNewUint256FromHex(t *testing.T) {
 				x256, err := bigutil.NewUint256FromHex(tc.in)
 				require.NoError(t, err)
 
-				require.Zero(t, x256.BigInt().Cmp(tc.out.BigInt()))
+				require.Equal(t, tc.want, x256.String())
 			})
 		}
 	})
 }
 
-func TestUint256Value(t *testing.T) {
+func TestUint256_BigInt(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		tcs := []struct {
 			name string
 			in   bigutil.Uint256
-			out  driver.Value
+			want string
+		}{
+			{
+				"zero",
+				bigutil.NewUint256FromUint64(0),
+				"0x0",
+			},
+			{
+				"one",
+				bigutil.NewUint256FromUint64(1),
+				"0x1",
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				x := tc.in.BigInt()
+				x.SetInt64(-1)
+
+				require.Equal(t, tc.want, tc.in.String())
+			})
+		}
+	})
+}
+
+func TestUint256_Value(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   bigutil.Uint256
+			want driver.Value
 		}{
 			{
 				"zero value",
@@ -147,9 +236,14 @@ func TestUint256Value(t *testing.T) {
 				[]byte{0x0},
 			},
 			{
+				"one",
+				bigutil.NewUint256FromUint64(1),
+				[]byte{0x1},
+			},
+			{
 				"max",
 				bigutil.MustNewUint256(ethmath.MaxBig256),
-				[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+				bytes.Repeat([]byte{0xff}, 32),
 			},
 		}
 
@@ -158,47 +252,51 @@ func TestUint256Value(t *testing.T) {
 				v, err := tc.in.Value()
 				require.NoError(t, err)
 
-				require.Equal(t, tc.out, v)
+				require.Equal(t, tc.want, v)
 			})
 		}
 	})
 }
 
-func TestUint256Scan(t *testing.T) {
+func TestUint256_Scan(t *testing.T) {
 	t.Run("failure", func(t *testing.T) {
 		tcs := []struct {
 			name string
 			in   any
+			want string
 		}{
 			{
 				"nil",
 				nil,
+				"invalid source: nil",
 			},
 			{
 				"int64",
 				int64(0),
+				"unsupported source type: int64",
 			},
 			{
-				"uint64",
-				uint64(0),
+				"string",
+				"0x0",
+				"unsupported source type: string",
 			},
 			{
-				"empty []byte",
+				"[]byte: empty",
 				[]byte{},
+				"invalid source: empty []byte",
 			},
 			{
-				"too long []byte",
-				[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00},
+				"[]byte: exceeds 32 bytes",
+				append([]byte{0x01}, bytes.Repeat([]byte{0x00}, 32)...),
+				"invalid source: exceeds 32 bytes",
 			},
 		}
 
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
 				var x256 bigutil.Uint256
-				{
-					err := x256.Scan(tc.in)
-					require.Error(t, err)
-				}
+				err := x256.Scan(tc.in)
+				require.ErrorContains(t, err, tc.want)
 			})
 		}
 	})
@@ -207,35 +305,48 @@ func TestUint256Scan(t *testing.T) {
 		tcs := []struct {
 			name string
 			in   any
-			out  bigutil.Uint256
+			want string
 		}{
 			{
-				"zero",
+				"[]byte: zero",
 				[]byte{0x0},
-				bigutil.NewUint256FromUint64(0),
+				"0x0",
 			},
 			{
-				"max",
-				[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
-				bigutil.MustNewUint256(ethmath.MaxBig256),
+				"[]byte: zero with leading zeros",
+				bytes.Repeat([]byte{0x00}, 32),
+				"0x0",
+			},
+			{
+				"[]byte: one",
+				[]byte{0x1},
+				"0x1",
+			},
+			{
+				"[]byte: one with leading zeros",
+				append(bytes.Repeat([]byte{0x00}, 31), 0x01),
+				"0x1",
+			},
+			{
+				"[]byte: max",
+				bytes.Repeat([]byte{0xff}, 32),
+				"0x" + strings.Repeat("f", 64),
 			},
 		}
 
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
 				var x256 bigutil.Uint256
-				{
-					err := x256.Scan(tc.in)
-					require.NoError(t, err)
-				}
+				err := x256.Scan(tc.in)
+				require.NoError(t, err)
 
-				require.Zero(t, x256.BigInt().Cmp(tc.out.BigInt()))
+				require.Equal(t, tc.want, x256.String())
 			})
 		}
 	})
 }
 
-func TestUint256MarshalJSON(t *testing.T) {
+func TestUint256_JSONMarshal(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		tcs := []struct {
 			name string
@@ -253,9 +364,14 @@ func TestUint256MarshalJSON(t *testing.T) {
 				[]byte(`"0x0"`),
 			},
 			{
+				"one",
+				bigutil.NewUint256FromUint64(1),
+				[]byte(`"0x1"`),
+			},
+			{
 				"max",
 				bigutil.MustNewUint256(ethmath.MaxBig256),
-				[]byte(`"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"`),
+				[]byte(`"0x` + strings.Repeat("f", 64) + `"`),
 			},
 		}
 
@@ -270,25 +386,75 @@ func TestUint256MarshalJSON(t *testing.T) {
 	})
 }
 
-func TestUint256UnmarshalJSON(t *testing.T) {
+func TestUint256_JSONUnmarshal(t *testing.T) {
 	t.Run("failure", func(t *testing.T) {
 		tcs := []struct {
 			name string
 			in   []byte
+			want string
 		}{
 			{
-				"0x",
+				"null",
+				[]byte(`null`),
+				"invalid json value: null",
+			},
+			{
+				"number: negative",
+				[]byte(`-1`),
+				"invalid big.Int: negative",
+			},
+			{
+				"number: exceeds 256 bits",
+				[]byte(`115792089237316195423570985008687907853269984665640564039457584007913129639936`),
+				"invalid big.Int: exceeds 256 bits",
+			},
+			{
+				"number: fractional",
+				[]byte(`0.0`),
+				"",
+			},
+			{
+				"number: exponential",
+				[]byte(`0e0`),
+				"",
+			},
+			{
+				"string: empty",
+				[]byte(`""`),
+				"",
+			},
+			{
+				"string: negative decimal",
+				[]byte(`"-1"`),
+				"invalid big.Int: negative",
+			},
+			{
+				"string: 0x prefix only",
 				[]byte(`"0x"`),
+				"invalid hex string: empty",
+			},
+			{
+				"string: 0X prefix only",
+				[]byte(`"0X"`),
+				"invalid hex string: empty",
+			},
+			{
+				"string: hex contains non-hex digit",
+				[]byte(`"0xg"`),
+				"invalid hex string",
+			},
+			{
+				"string: hex exceeds 256 bits",
+				[]byte(`"0x1` + strings.Repeat("0", 64) + `"`),
+				"invalid hex string",
 			},
 		}
 
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
 				var x256 bigutil.Uint256
-				{
-					err := json.Unmarshal(tc.in, &x256)
-					require.Error(t, err)
-				}
+				err := json.Unmarshal(tc.in, &x256)
+				require.ErrorContains(t, err, tc.want)
 			})
 		}
 	})
@@ -297,64 +463,82 @@ func TestUint256UnmarshalJSON(t *testing.T) {
 		tcs := []struct {
 			name string
 			in   []byte
-			out  bigutil.Uint256
+			want string
 		}{
 			{
-				"zero (hexadecimal string)",
-				[]byte(`"0x0"`),
-				bigutil.NewUint256FromUint64(0),
-			},
-			{
-				"zero (hexadecimal string with leading zero digits)",
-				[]byte(`"0x0000000000000000000000000000000000000000000000000000000000000000"`),
-				bigutil.NewUint256FromUint64(0),
-			},
-			{
-				"one (hexadecimal string)",
-				[]byte(`"0x1"`),
-				bigutil.NewUint256FromUint64(1),
-			},
-			{
-				"one (hexadecimal string with leading zero digits)",
-				[]byte(`"0x0000000000000000000000000000000000000000000000000000000000000001"`),
-				bigutil.NewUint256FromUint64(1),
-			},
-			{
-				"max (hexadecimal string)",
-				[]byte(`"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"`),
-				bigutil.MustNewUint256(ethmath.MaxBig256),
-			},
-			{
-				"zero (decimal string)",
-				[]byte(`"0"`),
-				bigutil.NewUint256FromUint64(0),
-			},
-			{
-				"max (decimal string)",
-				[]byte(`"115792089237316195423570985008687907853269984665640564039457584007913129639935"`),
-				bigutil.MustNewUint256(ethmath.MaxBig256),
-			},
-			{
-				"zero (number)",
+				"number: zero",
 				[]byte(`0`),
-				bigutil.NewUint256FromUint64(0),
+				"0x0",
 			},
 			{
-				"max (number)",
+				"number: one",
+				[]byte(`1`),
+				"0x1",
+			},
+			{
+				"number: max",
 				[]byte(`115792089237316195423570985008687907853269984665640564039457584007913129639935`),
-				bigutil.MustNewUint256(ethmath.MaxBig256),
+				"0x" + strings.Repeat("f", 64),
+			},
+			{
+				"string: 0x-prefixed hex zero",
+				[]byte(`"0x0"`),
+				"0x0",
+			},
+			{
+				"string: 0X-prefixed hex zero",
+				[]byte(`"0X0"`),
+				"0x0",
+			},
+			{
+				"string: 0x-prefixed hex zero with leading zeros",
+				[]byte(`"0x` + strings.Repeat("0", 64) + `"`),
+				"0x0",
+			},
+			{
+				"string: 0X-prefixed hex zero with leading zeros",
+				[]byte(`"0X` + strings.Repeat("0", 64) + `"`),
+				"0x0",
+			},
+			{
+				"string: 0x-prefixed hex one",
+				[]byte(`"0x1"`),
+				"0x1",
+			},
+			{
+				"string: 0X-prefixed hex one",
+				[]byte(`"0X1"`),
+				"0x1",
+			},
+			{
+				"string: 0x-prefixed hex one with leading zeros",
+				[]byte(`"0x` + strings.Repeat("0", 63) + `1"`),
+				"0x1",
+			},
+			{
+				"string: 0X-prefixed hex one with leading zeros",
+				[]byte(`"0X` + strings.Repeat("0", 63) + `1"`),
+				"0x1",
+			},
+			{
+				"string: 0x-prefixed mixedcase hex max",
+				[]byte(`"0x` + strings.Repeat("fF", 32) + `"`),
+				"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+			},
+			{
+				"string: 0X-prefixed mixedcase hex max",
+				[]byte(`"0X` + strings.Repeat("fF", 32) + `"`),
+				"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
 			},
 		}
 
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
 				var x256 bigutil.Uint256
-				{
-					err := json.Unmarshal(tc.in, &x256)
-					require.NoError(t, err)
-				}
+				err := json.Unmarshal(tc.in, &x256)
+				require.NoError(t, err)
 
-				require.Zero(t, x256.BigInt().Cmp(tc.out.BigInt()))
+				require.Equal(t, tc.want, x256.String())
 			})
 		}
 	})

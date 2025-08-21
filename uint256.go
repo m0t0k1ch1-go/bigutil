@@ -2,18 +2,21 @@ package bigutil
 
 import (
 	"database/sql/driver"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"math/big"
+	"strings"
 
 	ethhexutil "github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/samber/oops"
 )
 
 const (
-	maxByteLength = 32
-	maxBitLength  = maxByteLength * 8
+	maxUint256Bits  = 256
+	maxUint256Bytes = 32
 )
 
-// Uint256 is a wrapper for big.Int that represents uint256.
+// Uint256 represents an unsigned 256-bit integer.
 type Uint256 struct {
 	x big.Int
 }
@@ -21,17 +24,14 @@ type Uint256 struct {
 // NewUint256 returns a new Uint256.
 func NewUint256(x *big.Int) (Uint256, error) {
 	var x256 Uint256
-	{
-		if err := x256.setBigInt(x); err != nil {
-			return Uint256{}, err
-		}
+	if err := x256.setBigInt(x); err != nil {
+		return Uint256{}, err
 	}
 
 	return x256, nil
 }
 
-// MustNewUint256 returns a new Uint256.
-// It panics for invalid input.
+// MustNewUint256 panics if the input is invalid.
 func MustNewUint256(x *big.Int) Uint256 {
 	x256, err := NewUint256(x)
 	if err != nil {
@@ -41,25 +41,34 @@ func MustNewUint256(x *big.Int) Uint256 {
 	return x256
 }
 
-// NewUint256FromUint64 returns a new Uint256 from a uint64.
-func NewUint256FromUint64(i uint64) Uint256 {
-	return MustNewUint256(new(big.Int).SetUint64(i))
+func (x256 *Uint256) setBigInt(x *big.Int) error {
+	if x == nil {
+		return errors.New("invalid big.Int: nil")
+	}
+	if x.Sign() < 0 {
+		return errors.New("invalid big.Int: negative")
+	}
+	if x.BitLen() > maxUint256Bits {
+		return fmt.Errorf("invalid big.Int: exceeds %d bits", maxUint256Bits)
+	}
+
+	x256.x.Set(x)
+
+	return nil
 }
 
-// NewUint256FromHex returns a new Uint256 from a hexadecimal string.
+// NewUint256FromHex returns a new Uint256 from a hex string.
+// The string must have a 0x/0X prefix; leading zeros are allowed and ignored.
 func NewUint256FromHex(s string) (Uint256, error) {
 	var x256 Uint256
-	{
-		if err := x256.setHex(s); err != nil {
-			return Uint256{}, err
-		}
+	if err := x256.setHex(s); err != nil {
+		return Uint256{}, err
 	}
 
 	return x256, nil
 }
 
-// MustNewUint256FromHex returns a new Uint256 from a hexadecimal string.
-// It panics for invalid input.
+// MustNewUint256FromHex panics if the input is invalid.
 func MustNewUint256FromHex(s string) Uint256 {
 	x256, err := NewUint256FromHex(s)
 	if err != nil {
@@ -69,127 +78,127 @@ func MustNewUint256FromHex(s string) Uint256 {
 	return x256
 }
 
-// BigInt returns the big.Int.
+func (x256 *Uint256) setHex(s string) error {
+	if !strings.HasPrefix(s, "0x") && !strings.HasPrefix(s, "0X") {
+		return errors.New("invalid hex string: missing 0x/0X prefix")
+	}
+	if s == "0x" || s == "0X" {
+		return errors.New("invalid hex string: empty")
+	}
+
+	d := strings.TrimLeft(s[2:], "0")
+	if len(d) == 0 {
+		d = "0"
+	}
+
+	s = "0x" + d
+
+	x, err := ethhexutil.DecodeBig(s)
+	if err != nil {
+		return fmt.Errorf("invalid hex string: %w", err)
+	}
+
+	return x256.setBigInt(x)
+}
+
+// NewUint256FromUint64 returns a new Uint256 from a uint64.
+func NewUint256FromUint64(i uint64) Uint256 {
+	var x256 Uint256
+	x256.x.SetUint64(i)
+
+	return x256
+}
+
+// BigInt returns a copy of the underlying big.Int.
 func (x256 Uint256) BigInt() *big.Int {
-	return &x256.x
+	var x big.Int
+	x.Set(&x256.x)
+
+	return &x
 }
 
-// String implements the fmt.Stringer interface.
+// String implements fmt.Stringer.
+// It returns a 0x-prefixed lowercase hex string with no leading zeros (zero is "0x0").
 func (x256 Uint256) String() string {
-	return x256.string()
+	return "0x" + x256.x.Text(16)
 }
 
-// Value implements the driver.Valuer interface.
+// Value implements driver.Valuer.
+// It returns a minimal big-endian []byte (never nil); zero is encoded as a single 0x00 byte.
 func (x256 Uint256) Value() (driver.Value, error) {
 	b := x256.x.Bytes()
 	if len(b) == 0 {
-		b = []byte{0x0}
+		b = []byte{0x00}
 	}
 
 	return b, nil
 }
 
-// Scan implements the sql.Scanner interface.
+// Scan implements sql.Scanner.
+// It accepts a big-endian []byte (length 1-32).
 func (x256 *Uint256) Scan(src any) error {
 	if src == nil {
-		return oops.New("src must not be nil")
+		return errors.New("invalid source: nil")
 	}
 
 	b, ok := src.([]byte)
 	if !ok {
-		return oops.Errorf("unexpected src type: %T", src)
+		return fmt.Errorf("unsupported source type: %T", src)
 	}
 	if len(b) == 0 {
-		return oops.New("src bytes must not be empty")
+		return errors.New("invalid source: empty []byte")
 	}
-	if len(b) > maxByteLength {
-		return oops.Errorf("src bytes must be less than or equal to %d bytes", maxByteLength)
+	if len(b) > maxUint256Bytes {
+		return fmt.Errorf("invalid source: exceeds %d bytes", maxUint256Bytes)
 	}
 
-	x256.x.SetBytes(b)
+	var x big.Int
+	x.SetBytes(b)
 
-	return nil
+	return x256.setBigInt(&x)
 }
 
-// MarshalText implements the encoding.TextMarshaler interface.
+// MarshalText implements encoding.TextMarshaler.
+// It returns a 0x-prefixed lowercase hex string with no leading zeros (zero is "0x0").
 func (x256 Uint256) MarshalText() ([]byte, error) {
-	return []byte(x256.string()), nil
+	return []byte(x256.String()), nil
 }
 
-// UnmarshalText implements the encoding.TextUnmarshaler interface.
+// UnmarshalText implements encoding.TextUnmarshaler.
+// It accepts either a 0x/0X-prefixed hex string or a non-negative decimal string.
 func (x256 *Uint256) UnmarshalText(text []byte) error {
-	if has0xPrefix(string(text)) {
-		return x256.setHex(string(text))
+	s := strings.TrimSpace(string(text))
 
-	} else {
-		x := new(big.Int)
-		{
-			if err := x.UnmarshalText(text); err != nil {
-				return oops.Wrap(err)
-			}
+	if strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X") {
+		return x256.setHex(s)
+	}
+
+	var x big.Int
+	if err := x.UnmarshalText([]byte(s)); err != nil {
+		return err
+	}
+
+	return x256.setBigInt(&x)
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+// It accepts a JSON string (0x/0X-prefixed hex or non-negative decimal) or a JSON number (non-negative integer).
+func (x256 *Uint256) UnmarshalJSON(b []byte) error {
+	if len(b) == 0 {
+		return errors.New("invalid json value: empty")
+	}
+	if string(b) == "null" {
+		return errors.New("invalid json value: null")
+	}
+
+	if len(b) >= 2 && b[0] == '"' && b[len(b)-1] == '"' {
+		var s string
+		if err := json.Unmarshal(b, &s); err != nil {
+			return fmt.Errorf("invalid json string: %w", err)
 		}
 
-		return x256.setBigInt(x)
-	}
-}
-
-// UnmarshalJSON implements the json.Unmarshaler interface.
-func (x256 *Uint256) UnmarshalJSON(b []byte) error {
-	if b[0] == '"' && b[len(b)-1] == '"' {
-		b = b[1 : len(b)-1]
+		return x256.UnmarshalText([]byte(s))
 	}
 
 	return x256.UnmarshalText(b)
-}
-
-func (x256 Uint256) string() string {
-	return ethhexutil.EncodeBig(&x256.x)
-}
-
-func (x256 *Uint256) setBigInt(x *big.Int) error {
-	if x.Sign() < 0 {
-		return oops.New("x must not be negative")
-	}
-	if x.BitLen() > maxBitLength {
-		return oops.Errorf("x must be less than or equal to %d bits", maxBitLength)
-	}
-
-	x256.x = *x
-
-	return nil
-}
-
-func (x256 *Uint256) setHex(s string) error {
-	if !has0xPrefix(s) {
-		return oops.New("s must have 0x prefix")
-	}
-	if is0x(s) {
-		return oops.New("s must not be 0x")
-	}
-
-	var b []byte
-	{
-		b = append(b, '0', 'x')
-
-		for idx, c := range s[2:] {
-			if c == '0' {
-				continue
-			}
-
-			b = append(b, s[2+idx:]...)
-
-			break
-		}
-
-		if is0x(string(b)) {
-			b = append(b, '0')
-		}
-	}
-
-	x, err := ethhexutil.DecodeBig(string(b))
-	if err != nil {
-		return oops.Wrap(err)
-	}
-
-	return x256.setBigInt(x)
 }
