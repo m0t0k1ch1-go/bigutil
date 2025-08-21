@@ -58,7 +58,7 @@ func (x256 *Uint256) setBigInt(x *big.Int) error {
 }
 
 // NewUint256FromHex returns a new Uint256 from a hex string.
-// The string must have a lowercase 0x prefix; leading zeros are allowed and ignored.
+// The string must have a 0x/0X prefix; leading zeros are allowed and ignored.
 func NewUint256FromHex(s string) (Uint256, error) {
 	var x256 Uint256
 	if err := x256.setHex(s); err != nil {
@@ -79,18 +79,19 @@ func MustNewUint256FromHex(s string) Uint256 {
 }
 
 func (x256 *Uint256) setHex(s string) error {
-	if !strings.HasPrefix(s, "0x") {
-		return errors.New("invalid hex string: missing 0x prefix")
+	if !strings.HasPrefix(s, "0x") && !strings.HasPrefix(s, "0X") {
+		return errors.New("invalid hex string: missing 0x/0X prefix")
 	}
-	if s == "0x" {
+	if s == "0x" || s == "0X" {
 		return errors.New("invalid hex string: empty")
 	}
 
-	s = strings.TrimLeft(s[2:], "0")
-	if len(s) == 0 {
-		s = "0"
+	d := strings.TrimLeft(s[2:], "0")
+	if len(d) == 0 {
+		d = "0"
 	}
-	s = "0x" + s
+
+	s = "0x" + d
 
 	x, err := ethhexutil.DecodeBig(s)
 	if err != nil {
@@ -164,11 +165,11 @@ func (x256 Uint256) MarshalText() ([]byte, error) {
 }
 
 // UnmarshalText implements encoding.TextUnmarshaler.
-// It accepts either a 0x-prefixed lowercase hex string or a non-negative decimal string.
+// It accepts either a 0x/0X-prefixed hex string or a non-negative decimal string.
 func (x256 *Uint256) UnmarshalText(text []byte) error {
 	s := strings.TrimSpace(string(text))
 
-	if strings.HasPrefix(s, "0x") {
+	if strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X") {
 		return x256.setHex(s)
 	}
 
@@ -181,7 +182,7 @@ func (x256 *Uint256) UnmarshalText(text []byte) error {
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
-// It accepts a JSON string (0x-prefixed lowercase hex or non-negative decimal) or a JSON number (non-negative integer).
+// It accepts a JSON string (0x/0X-prefixed hex or non-negative decimal) or a JSON number (non-negative integer).
 func (x256 *Uint256) UnmarshalJSON(b []byte) error {
 	if len(b) == 0 {
 		return errors.New("invalid json value: empty")
