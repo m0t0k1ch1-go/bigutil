@@ -499,17 +499,17 @@ func TestUint256_JSONUnmarshal(t *testing.T) {
 			{
 				"number: fractional",
 				[]byte(`0.0`),
-				"",
+				"invalid decimal string",
 			},
 			{
 				"number: exponential",
 				[]byte(`0e0`),
-				"",
+				"invalid decimal string",
 			},
 			{
 				"string: empty",
 				[]byte(`""`),
-				"",
+				"invalid decimal string",
 			},
 			{
 				"string: negative decimal",

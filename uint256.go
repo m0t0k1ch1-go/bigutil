@@ -175,7 +175,7 @@ func (x256 *Uint256) UnmarshalText(text []byte) error {
 
 	var x big.Int
 	if err := x.UnmarshalText([]byte(s)); err != nil {
-		return err
+		return fmt.Errorf("invalid decimal string: %w", err)
 	}
 
 	return x256.setBigInt(&x)
