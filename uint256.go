@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
+	"strconv"
 	"strings"
 )
 
@@ -166,6 +168,12 @@ func (x256 Uint256) MarshalText() ([]byte, error) {
 	return []byte(x256.String()), nil
 }
 
+// MarshalGQL implements graphql.Marshaler.
+// It writes the value as a quoted 0x-prefixed lowercase hex string with no leading zeros (zero is "0x0").
+func (x256 Uint256) MarshalGQL(w io.Writer) {
+	_, _ = io.WriteString(w, strconv.Quote(x256.String()))
+}
+
 // UnmarshalText implements encoding.TextUnmarshaler.
 // It accepts either a 0x/0X-prefixed hex string or a non-negative decimal string.
 func (x256 *Uint256) UnmarshalText(text []byte) error {
@@ -212,6 +220,25 @@ func (x256 *Uint256) UnmarshalJSON(b []byte) error {
 
 	if err := x256.setBigInt(&x); err != nil {
 		return fmt.Errorf("invalid json number: %w", err)
+	}
+
+	return nil
+}
+
+// UnmarshalGQL implements graphql.Unmarshaler.
+// It accepts a GraphQL String (0x/0X-prefixed hex string or non-negative decimal string).
+func (x256 *Uint256) UnmarshalGQL(v any) error {
+	if v == nil {
+		return errors.New("invalid graphql value: nil")
+	}
+
+	s, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("unsupported graphql value type: %T", v)
+	}
+
+	if err := x256.UnmarshalText([]byte(s)); err != nil {
+		return fmt.Errorf("invalid graphql string: %w", err)
 	}
 
 	return nil
