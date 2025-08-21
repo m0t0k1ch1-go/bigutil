@@ -73,6 +73,7 @@ func TestNewUint256(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				x256, err := bigutil.NewUint256(tc.in)
 				require.NoError(t, err)
+				require.Equal(t, tc.want, x256.String())
 
 				tc.in.SetInt64(-1)
 
@@ -224,7 +225,6 @@ func TestNewUint256FromHex(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				x256, err := bigutil.NewUint256FromHex(tc.in)
 				require.NoError(t, err)
-
 				require.Equal(t, tc.want, x256.String())
 			})
 		}
@@ -298,9 +298,12 @@ func TestUint256_BigInt(t *testing.T) {
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
 				x := tc.in.BigInt()
+				require.Equal(t, tc.want, "0x"+x.Text(16))
+
 				x.SetInt64(-1)
 
-				require.Equal(t, tc.want, tc.in.String())
+				s := tc.in.String()
+				require.Equal(t, tc.want, s)
 			})
 		}
 	})
@@ -339,7 +342,6 @@ func TestUint256_Value(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				v, err := tc.in.Value()
 				require.NoError(t, err)
-
 				require.Equal(t, tc.want, v)
 			})
 		}
@@ -427,7 +429,6 @@ func TestUint256_Scan(t *testing.T) {
 				var x256 bigutil.Uint256
 				err := x256.Scan(tc.in)
 				require.NoError(t, err)
-
 				require.Equal(t, tc.want, x256.String())
 			})
 		}
@@ -467,7 +468,6 @@ func TestUint256_JSONMarshal(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				b, err := json.Marshal(tc.in)
 				require.NoError(t, err)
-
 				require.Equal(t, tc.out, b)
 			})
 		}
@@ -625,7 +625,6 @@ func TestUint256_JSONUnmarshal(t *testing.T) {
 				var x256 bigutil.Uint256
 				err := json.Unmarshal(tc.in, &x256)
 				require.NoError(t, err)
-
 				require.Equal(t, tc.want, x256.String())
 			})
 		}
