@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
-
-	ethhexutil "github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 const (
@@ -93,12 +91,12 @@ func (x256 *Uint256) setHex(s string) error {
 
 	s = "0x" + d
 
-	x, err := ethhexutil.DecodeBig(s)
-	if err != nil {
-		return fmt.Errorf("invalid hex string: %w", err)
+	var x big.Int
+	if _, ok := x.SetString(s, 0); !ok {
+		return errors.New("invalid hex string")
 	}
 
-	return x256.setBigInt(x)
+	return x256.setBigInt(&x)
 }
 
 // NewUint256FromUint64 returns a new Uint256 from a uint64.
