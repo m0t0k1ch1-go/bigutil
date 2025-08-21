@@ -139,7 +139,7 @@ func TestNewUint256FromHex(t *testing.T) {
 			{
 				"empty",
 				"",
-				"invalid hex string: missing 0x/0X prefix",
+				"invalid hex string: empty",
 			},
 			{
 				"missing 0x/0X prefix",
@@ -147,17 +147,17 @@ func TestNewUint256FromHex(t *testing.T) {
 				"invalid hex string: missing 0x/0X prefix",
 			},
 			{
-				"only 0x prefix",
+				"missing hex digits after 0x prefix",
 				"0x",
-				"invalid hex string: empty",
+				"invalid hex string: missing hex digits after 0x/0X prefix",
 			},
 			{
-				"only 0X prefix",
+				"missing hex digits after 0X prefix",
 				"0X",
-				"invalid hex string: empty",
+				"invalid hex string: missing hex digits after 0x/0X prefix",
 			},
 			{
-				"contains non-hex digit",
+				"contains non-hex characters",
 				"0xg",
 				"invalid hex string",
 			},
@@ -244,7 +244,7 @@ func TestMustNewUint256FromHex(t *testing.T) {
 			{
 				"empty",
 				"",
-				"invalid hex string: missing 0x/0X prefix",
+				"invalid hex string: empty",
 			},
 		}
 
@@ -512,7 +512,7 @@ func TestUint256_JSONUnmarshal(t *testing.T) {
 			{
 				"string: empty",
 				[]byte(`""`),
-				"invalid json string: invalid decimal string",
+				"invalid json string: invalid string: empty",
 			},
 			{
 				"string: negative decimal",
@@ -520,17 +520,17 @@ func TestUint256_JSONUnmarshal(t *testing.T) {
 				"invalid json string: invalid big.Int: negative",
 			},
 			{
-				"string: 0x prefix only",
+				"string: missing hex digits after 0x prefix",
 				[]byte(`"0x"`),
-				"invalid json string: invalid hex string: empty",
+				"invalid json string: invalid hex string: missing hex digits after 0x/0X prefix",
 			},
 			{
-				"string: 0X prefix only",
+				"string: missing hex digits after 0X prefix",
 				[]byte(`"0X"`),
-				"invalid json string: invalid hex string: empty",
+				"invalid json string: invalid hex string: missing hex digits after 0x/0X prefix",
 			},
 			{
-				"string: hex contains non-hex digit",
+				"string: hex contains non-hex characters",
 				[]byte(`"0xg"`),
 				"invalid json string: invalid hex string",
 			},
