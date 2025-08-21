@@ -84,12 +84,12 @@ func (x256 *Uint256) setHex(s string) error {
 		return errors.New("invalid hex string: empty")
 	}
 
-	d := strings.TrimLeft(s[2:], "0")
-	if len(d) == 0 {
-		d = "0"
+	hexWithoutPrefix := strings.TrimLeft(s[2:], "0")
+	if len(hexWithoutPrefix) == 0 {
+		hexWithoutPrefix = "0"
 	}
 
-	s = "0x" + d
+	s = "0x" + hexWithoutPrefix
 
 	var x big.Int
 	if _, ok := x.SetString(s, 0); !ok {
@@ -153,7 +153,11 @@ func (x256 *Uint256) Scan(src any) error {
 	var x big.Int
 	x.SetBytes(b)
 
-	return x256.setBigInt(&x)
+	if err := x256.setBigInt(&x); err != nil {
+		return fmt.Errorf("invalid source: %w", err)
+	}
+
+	return nil
 }
 
 // MarshalText implements encoding.TextMarshaler.
@@ -165,14 +169,13 @@ func (x256 Uint256) MarshalText() ([]byte, error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 // It accepts either a 0x/0X-prefixed hex string or a non-negative decimal string.
 func (x256 *Uint256) UnmarshalText(text []byte) error {
-	s := strings.TrimSpace(string(text))
-
+	s := string(text)
 	if strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X") {
 		return x256.setHex(s)
 	}
 
 	var x big.Int
-	if err := x.UnmarshalText([]byte(s)); err != nil {
+	if err := x.UnmarshalText(text); err != nil {
 		return fmt.Errorf("invalid decimal string: %w", err)
 	}
 
@@ -195,8 +198,21 @@ func (x256 *Uint256) UnmarshalJSON(b []byte) error {
 			return fmt.Errorf("invalid json string: %w", err)
 		}
 
-		return x256.UnmarshalText([]byte(s))
+		if err := x256.UnmarshalText([]byte(s)); err != nil {
+			return fmt.Errorf("invalid json string: %w", err)
+		}
+
+		return nil
 	}
 
-	return x256.UnmarshalText(b)
+	var x big.Int
+	if _, ok := x.SetString(string(b), 10); !ok {
+		return errors.New("invalid json number")
+	}
+
+	if err := x256.setBigInt(&x); err != nil {
+		return fmt.Errorf("invalid json number: %w", err)
+	}
+
+	return nil
 }

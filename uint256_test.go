@@ -492,52 +492,52 @@ func TestUint256_JSONUnmarshal(t *testing.T) {
 			{
 				"number: negative",
 				[]byte(`-1`),
-				"invalid big.Int: negative",
+				"invalid json number: invalid big.Int: negative",
 			},
 			{
 				"number: exceeds 256 bits",
 				[]byte(`115792089237316195423570985008687907853269984665640564039457584007913129639936`),
-				"invalid big.Int: exceeds 256 bits",
+				"invalid json number: invalid big.Int: exceeds 256 bits",
 			},
 			{
 				"number: fractional",
 				[]byte(`0.0`),
-				"invalid decimal string",
+				"invalid json number",
 			},
 			{
 				"number: exponential",
 				[]byte(`0e0`),
-				"invalid decimal string",
+				"invalid json number",
 			},
 			{
 				"string: empty",
 				[]byte(`""`),
-				"invalid decimal string",
+				"invalid json string: invalid decimal string",
 			},
 			{
 				"string: negative decimal",
 				[]byte(`"-1"`),
-				"invalid big.Int: negative",
+				"invalid json string: invalid big.Int: negative",
 			},
 			{
 				"string: 0x prefix only",
 				[]byte(`"0x"`),
-				"invalid hex string: empty",
+				"invalid json string: invalid hex string: empty",
 			},
 			{
 				"string: 0X prefix only",
 				[]byte(`"0X"`),
-				"invalid hex string: empty",
+				"invalid json string: invalid hex string: empty",
 			},
 			{
 				"string: hex contains non-hex digit",
 				[]byte(`"0xg"`),
-				"invalid hex string",
+				"invalid json string: invalid hex string",
 			},
 			{
 				"string: hex exceeds 256 bits",
 				[]byte(`"0x1` + strings.Repeat("0", 64) + `"`),
-				"invalid big.Int: exceeds 256 bits",
+				"invalid json string: invalid big.Int: exceeds 256 bits",
 			},
 		}
 
