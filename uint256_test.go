@@ -625,6 +625,21 @@ func TestUint256_UnmarshalJSON(t *testing.T) {
 				"0x" + strings.Repeat("f", 64),
 			},
 			{
+				"string: decimal zero",
+				[]byte(`"0"`),
+				"0x0",
+			},
+			{
+				"string: decimal one",
+				[]byte(`"1"`),
+				"0x1",
+			},
+			{
+				"string: decimal max",
+				[]byte(`"115792089237316195423570985008687907853269984665640564039457584007913129639935"`),
+				"0x" + strings.Repeat("f", 64),
+			},
+			{
 				"string: 0x-prefixed hex zero",
 				[]byte(`"0x0"`),
 				"0x0",
@@ -756,6 +771,21 @@ func TestUint256_UnmarshalGQL(t *testing.T) {
 			in   any
 			want string
 		}{
+			{
+				"string: decimal zero",
+				"0",
+				"0x0",
+			},
+			{
+				"string: decimal one",
+				"1",
+				"0x1",
+			},
+			{
+				"string: decimal max",
+				"115792089237316195423570985008687907853269984665640564039457584007913129639935",
+				"0x" + strings.Repeat("f", 64),
+			},
 			{
 				"string: 0x-prefixed hex zero",
 				"0x0",
