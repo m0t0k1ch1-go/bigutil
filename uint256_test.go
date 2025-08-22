@@ -523,6 +523,11 @@ func TestUint256_UnmarshalJSON(t *testing.T) {
 			want string
 		}{
 			{
+				"empty",
+				[]byte{},
+				"invalid json value: empty",
+			},
+			{
 				"null",
 				[]byte(`null`),
 				"invalid json value: null",
@@ -571,6 +576,11 @@ func TestUint256_UnmarshalJSON(t *testing.T) {
 				"string: missing hex digits after 0X prefix",
 				[]byte(`"0X"`),
 				"invalid json string: invalid hex string: missing hex digits after 0x/0X prefix",
+			},
+			{
+				"string: hex contains invalid escape sequences",
+				[]byte(`"0x\x"`),
+				"invalid json string",
 			},
 			{
 				"string: hex contains non-hex characters",
