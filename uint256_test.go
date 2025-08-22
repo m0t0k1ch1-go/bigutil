@@ -696,6 +696,11 @@ func TestUint256_UnmarshalGQL(t *testing.T) {
 				"invalid graphql string: invalid string: empty",
 			},
 			{
+				"string: invalid decimal",
+				"invalid",
+				"invalid graphql string: invalid decimal string",
+			},
+			{
 				"string: negative decimal",
 				"-1",
 				"invalid graphql string: invalid big.Int: negative",
