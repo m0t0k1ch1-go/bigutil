@@ -378,9 +378,9 @@ func TestUint256_Scan(t *testing.T) {
 				"invalid source: empty []byte",
 			},
 			{
-				"[]byte: exceeds 32 bytes",
+				"[]byte: exceeds 256 bits",
 				append([]byte{0x01}, bytes.Repeat([]byte{0x00}, 32)...),
-				"invalid source: exceeds 32 bytes",
+				"invalid source: invalid big.Int: exceeds 256 bits",
 			},
 		}
 
