@@ -3,7 +3,6 @@ package bigutil_test
 import (
 	"bytes"
 	"database/sql/driver"
-	"encoding/json"
 	"math/big"
 	"strings"
 	"testing"
@@ -438,7 +437,7 @@ func TestUint256_Scan(t *testing.T) {
 	})
 }
 
-func TestUint256_JSONMarshal(t *testing.T) {
+func TestUint256_MarshalText(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		tcs := []struct {
 			name string
@@ -448,28 +447,28 @@ func TestUint256_JSONMarshal(t *testing.T) {
 			{
 				"zero value",
 				bigutil.Uint256{},
-				[]byte(`"0x0"`),
+				[]byte("0x0"),
 			},
 			{
 				"zero",
 				bigutil.NewUint256FromUint64(0),
-				[]byte(`"0x0"`),
+				[]byte("0x0"),
 			},
 			{
 				"one",
 				bigutil.NewUint256FromUint64(1),
-				[]byte(`"0x1"`),
+				[]byte("0x1"),
 			},
 			{
 				"max",
 				bigutil.MustNewUint256(maxUint256),
-				[]byte(`"0x` + strings.Repeat("f", 64) + `"`),
+				[]byte("0x" + strings.Repeat("f", 64)),
 			},
 		}
 
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
-				b, err := json.Marshal(tc.in)
+				b, err := tc.in.MarshalText()
 				require.NoError(t, err)
 				require.Equal(t, tc.out, b)
 			})
@@ -516,7 +515,7 @@ func TestUint256_MarshalGQL(t *testing.T) {
 	})
 }
 
-func TestUint256_JSONUnmarshal(t *testing.T) {
+func TestUint256_UnmarshalJSON(t *testing.T) {
 	t.Run("failure", func(t *testing.T) {
 		tcs := []struct {
 			name string
@@ -554,6 +553,11 @@ func TestUint256_JSONUnmarshal(t *testing.T) {
 				"invalid json string: invalid string: empty",
 			},
 			{
+				"string: invalid decimal",
+				[]byte(`"invalid"`),
+				"invalid json string: invalid decimal string",
+			},
+			{
 				"string: negative decimal",
 				[]byte(`"-1"`),
 				"invalid json string: invalid big.Int: negative",
@@ -583,7 +587,7 @@ func TestUint256_JSONUnmarshal(t *testing.T) {
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
 				var x256 bigutil.Uint256
-				err := json.Unmarshal(tc.in, &x256)
+				err := x256.UnmarshalJSON(tc.in)
 				require.ErrorContains(t, err, tc.want)
 			})
 		}
@@ -665,7 +669,7 @@ func TestUint256_JSONUnmarshal(t *testing.T) {
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
 				var x256 bigutil.Uint256
-				err := json.Unmarshal(tc.in, &x256)
+				err := x256.UnmarshalJSON(tc.in)
 				require.NoError(t, err)
 				require.Equal(t, tc.want, x256.String())
 			})
