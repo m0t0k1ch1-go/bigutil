@@ -672,3 +672,130 @@ func TestUint256_JSONUnmarshal(t *testing.T) {
 		}
 	})
 }
+
+func TestUint256_UnmarshalGQL(t *testing.T) {
+	t.Run("failure", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   any
+			want string
+		}{
+			{
+				"nil",
+				nil,
+				"invalid graphql value: nil",
+			},
+			{
+				"int",
+				int(0),
+				"unsupported graphql value type: int",
+			},
+			{
+				"string: empty",
+				"",
+				"invalid graphql string: invalid string: empty",
+			},
+			{
+				"string: negative decimal",
+				"-1",
+				"invalid graphql string: invalid big.Int: negative",
+			},
+			{
+				"string: missing hex digits after 0x prefix",
+				"0x",
+				"invalid graphql string: invalid hex string: missing hex digits after 0x/0X prefix",
+			},
+			{
+				"string: missing hex digits after 0X prefix",
+				"0X",
+				"invalid graphql string: invalid hex string: missing hex digits after 0x/0X prefix",
+			},
+			{
+				"string: hex contains non-hex characters",
+				"0xg",
+				"invalid graphql string: invalid hex string",
+			},
+			{
+				"string: hex exceeds 256 bits",
+				"0x1" + strings.Repeat("0", 64),
+				"invalid graphql string: invalid big.Int: exceeds 256 bits",
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				var x256 bigutil.Uint256
+				err := x256.UnmarshalGQL(tc.in)
+				require.ErrorContains(t, err, tc.want)
+			})
+		}
+	})
+
+	t.Run("success", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   any
+			want string
+		}{
+			{
+				"string: 0x-prefixed hex zero",
+				"0x0",
+				"0x0",
+			},
+			{
+				"string: 0X-prefixed hex zero",
+				"0X0",
+				"0x0",
+			},
+			{
+				"string: 0x-prefixed hex zero with leading zeros",
+				"0x" + strings.Repeat("0", 64),
+				"0x0",
+			},
+			{
+				"string: 0X-prefixed hex zero with leading zeros",
+				"0X" + strings.Repeat("0", 64),
+				"0x0",
+			},
+			{
+				"string: 0x-prefixed hex one",
+				"0x1",
+				"0x1",
+			},
+			{
+				"string: 0X-prefixed hex one",
+				"0X1",
+				"0x1",
+			},
+			{
+				"string: 0x-prefixed hex one with leading zeros",
+				"0x" + strings.Repeat("0", 63) + "1",
+				"0x1",
+			},
+			{
+				"string: 0X-prefixed hex one with leading zeros",
+				"0X" + strings.Repeat("0", 63) + "1",
+				"0x1",
+			},
+			{
+				"string: 0x-prefixed mixedcase hex max",
+				"0x" + strings.Repeat("fF", 32),
+				"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+			},
+			{
+				"string: 0X-prefixed mixedcase hex max",
+				"0X" + strings.Repeat("fF", 32),
+				"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				var x256 bigutil.Uint256
+				err := x256.UnmarshalGQL(tc.in)
+				require.NoError(t, err)
+				require.Equal(t, tc.want, x256.String())
+			})
+		}
+	})
+}
