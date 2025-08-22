@@ -76,12 +76,20 @@ func TestNewUint256(t *testing.T) {
 				x256, err := bigutil.NewUint256(tc.in)
 				require.NoError(t, err)
 				require.Equal(t, tc.want, x256.String())
-
-				tc.in.SetInt64(-1)
-
-				require.Equal(t, tc.want, x256.String())
 			})
 		}
+	})
+
+	t.Run("success: no aliasing", func(t *testing.T) {
+		x := big.NewInt(1)
+		x256, err := bigutil.NewUint256(x)
+		require.NoError(t, err)
+		require.Equal(t, "0x1", x256.String())
+
+		x.SetInt64(0)
+		require.Equal(t, "0", x.String())
+
+		require.Equal(t, "0x1", x256.String())
 	})
 }
 
@@ -288,26 +296,32 @@ func TestUint256_BigInt(t *testing.T) {
 			{
 				"zero",
 				bigutil.NewUint256FromUint64(0),
-				"0x0",
+				"0",
 			},
 			{
 				"one",
 				bigutil.NewUint256FromUint64(1),
-				"0x1",
+				"1",
 			},
 		}
 
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
 				x := tc.in.BigInt()
-				require.Equal(t, tc.want, "0x"+x.Text(16))
-
-				x.SetInt64(-1)
-
-				s := tc.in.String()
-				require.Equal(t, tc.want, s)
+				require.Equal(t, tc.want, x.String())
 			})
 		}
+	})
+
+	t.Run("success: no aliasing", func(t *testing.T) {
+		x256 := bigutil.NewUint256FromUint64(1)
+		x := x256.BigInt()
+		require.Equal(t, "1", x.String())
+
+		x.SetInt64(0)
+		require.Equal(t, "0", x.String())
+
+		require.Equal(t, "0x1", x256.String())
 	})
 }
 
