@@ -2,11 +2,16 @@ package bigutil_test
 
 import (
 	"bytes"
+	"database/sql"
 	"database/sql/driver"
+	"encoding"
+	"encoding/json"
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/stretchr/testify/require"
 
 	"github.com/m0t0k1ch1-go/bigutil/v3"
@@ -15,6 +20,18 @@ import (
 var (
 	maxUint256 = new(big.Int).Sub(new(big.Int).Exp(big.NewInt(2), big.NewInt(256), nil), big.NewInt(1))
 )
+
+func TestUint256(t *testing.T) {
+	var x256 bigutil.Uint256
+	require.Implements(t, (*fmt.Stringer)(nil), &x256)
+	require.Implements(t, (*driver.Valuer)(nil), &x256)
+	require.Implements(t, (*sql.Scanner)(nil), &x256)
+	require.Implements(t, (*encoding.TextMarshaler)(nil), &x256)
+	require.Implements(t, (*graphql.Marshaler)(nil), &x256)
+	require.Implements(t, (*encoding.TextUnmarshaler)(nil), &x256)
+	require.Implements(t, (*json.Unmarshaler)(nil), &x256)
+	require.Implements(t, (*graphql.Unmarshaler)(nil), &x256)
+}
 
 func TestNewUint256(t *testing.T) {
 	t.Run("failure", func(t *testing.T) {
