@@ -321,12 +321,12 @@ func TestUint256_Value(t *testing.T) {
 			{
 				"zero value",
 				bigutil.Uint256{},
-				[]byte{0x0},
+				[]byte{0x00},
 			},
 			{
 				"zero",
 				bigutil.NewUint256FromUint64(0),
-				[]byte{0x0},
+				[]byte{0x00},
 			},
 			{
 				"one",
@@ -401,7 +401,7 @@ func TestUint256_Scan(t *testing.T) {
 		}{
 			{
 				"[]byte: zero",
-				[]byte{0x0},
+				[]byte{0x00},
 				"0x0",
 			},
 			{
@@ -411,7 +411,7 @@ func TestUint256_Scan(t *testing.T) {
 			},
 			{
 				"[]byte: one",
-				[]byte{0x1},
+				[]byte{0x01},
 				"0x1",
 			},
 			{
