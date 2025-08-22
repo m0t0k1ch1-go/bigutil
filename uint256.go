@@ -12,8 +12,7 @@ import (
 )
 
 const (
-	maxUint256Bits  = 256
-	maxUint256Bytes = 32
+	maxUint256Bits = 256
 )
 
 // Uint256 represents an unsigned 256-bit integer.
@@ -150,9 +149,6 @@ func (x256 *Uint256) Scan(src any) error {
 	}
 	if len(b) == 0 {
 		return errors.New("invalid source: empty []byte")
-	}
-	if len(b) > maxUint256Bytes {
-		return fmt.Errorf("invalid source: exceeds %d bytes", maxUint256Bytes)
 	}
 
 	var x big.Int
