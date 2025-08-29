@@ -147,8 +147,10 @@ func TestMustNewUint256(t *testing.T) {
 		}
 
 		for _, tc := range tcs {
-			x256 := bigutil.MustNewUint256(tc.in)
-			require.Equal(t, tc.want, x256.String())
+			t.Run(tc.name, func(t *testing.T) {
+				x256 := bigutil.MustNewUint256(tc.in)
+				require.Equal(t, tc.want, x256.String())
+			})
 		}
 	})
 }
