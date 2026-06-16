@@ -120,13 +120,13 @@ func (x256 Uint256) BigInt() *big.Int {
 }
 
 // String implements fmt.Stringer.
-// It returns a 0x-prefixed lowercase hex string with no leading zeros (zero is "0x0").
+// It returns the value as a 0x-prefixed lowercase hex string with no leading zeros (zero is "0x0").
 func (x256 Uint256) String() string {
 	return "0x" + x256.x.Text(16)
 }
 
 // Value implements driver.Valuer.
-// It returns a minimal big-endian []byte (never nil); zero is encoded as a single 0x00 byte.
+// It returns the value as a minimal big-endian []byte (never nil); zero is encoded as a single 0x00 byte.
 func (x256 Uint256) Value() (driver.Value, error) {
 	b := x256.x.Bytes()
 	if len(b) == 0 {
@@ -162,7 +162,7 @@ func (x256 *Uint256) Scan(src any) error {
 }
 
 // MarshalText implements encoding.TextMarshaler.
-// It returns a 0x-prefixed lowercase hex string with no leading zeros (zero is "0x0").
+// It returns the value as a 0x-prefixed lowercase hex string with no leading zeros (zero is "0x0").
 func (x256 Uint256) MarshalText() ([]byte, error) {
 	return []byte(x256.String()), nil
 }
