@@ -239,8 +239,8 @@ func (x256 *Uint256) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// UnmarshalGQL implements graphql.Unmarshaler.
-// It accepts a GraphQL String (0x/0X-prefixed hex or non-negative decimal).
+// UnmarshalGQL implements [graphql.Unmarshaler].
+// It decodes a GraphQL String (0x/0X-prefixed hex or non-negative decimal) into x256.
 func (x256 *Uint256) UnmarshalGQL(v any) error {
 	if v == nil {
 		return errors.New("invalid graphql value: nil")
