@@ -214,9 +214,7 @@ func (x256 Uint256) MarshalText() ([]byte, error) {
 // MarshalJSONTo implements [json.MarshalerTo].
 // It encodes x256 as a quoted 0x-prefixed lowercase hexadecimal string with no leading zeros (zero is "0x0") and writes it to enc.
 func (x256 Uint256) MarshalJSONTo(enc *jsontext.Encoder) error {
-	b, _ := x256.MarshalText()
-
-	return json.MarshalEncode(enc, string(b))
+	return json.MarshalEncode(enc, x256.String())
 }
 
 // MarshalJSON implements [json.Marshaler].
