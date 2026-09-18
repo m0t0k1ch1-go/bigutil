@@ -53,13 +53,13 @@ func MustNewUint256(x *big.Int) Uint256 {
 
 func (x256 *Uint256) setBigInt(x *big.Int) error {
 	if x == nil {
-		return errors.New("invalid big.Int: nil")
+		return errors.New("invalid big int: nil")
 	}
 	if x.Sign() < 0 {
-		return errors.New("invalid big.Int: negative")
+		return errors.New("invalid big int: negative")
 	}
 	if x.BitLen() > 256 {
-		return fmt.Errorf("invalid big.Int: exceeds 256 bits")
+		return fmt.Errorf("invalid big int: exceeds 256 bits")
 	}
 
 	x256.x.Set(x)
@@ -104,10 +104,8 @@ func (x256 *Uint256) setHex(s string) error {
 		hexWithoutPrefix = "0"
 	}
 
-	s = "0x" + hexWithoutPrefix
-
 	var x big.Int
-	if _, ok := x.SetString(s, 0); !ok {
+	if _, ok := x.SetString("0x"+hexWithoutPrefix, 0); !ok {
 		return errors.New("invalid hex string")
 	}
 
@@ -159,17 +157,13 @@ func (x256 *Uint256) Scan(src any) error {
 		return fmt.Errorf("unsupported source type: %T", src)
 	}
 	if len(b) == 0 {
-		return errors.New("invalid source: empty []byte")
+		return errors.New("invalid source: empty bytes")
 	}
 
 	var x big.Int
 	x.SetBytes(b)
 
-	if err := x256.setBigInt(&x); err != nil {
-		return fmt.Errorf("invalid source: %w", err)
-	}
-
-	return nil
+	return x256.setBigInt(&x)
 }
 
 // MarshalText implements [encoding.TextMarshaler].
@@ -220,11 +214,7 @@ func (x256 *Uint256) UnmarshalJSON(b []byte) error {
 			return fmt.Errorf("invalid json string: %w", err)
 		}
 
-		if err := x256.UnmarshalText([]byte(s)); err != nil {
-			return fmt.Errorf("invalid json string: %w", err)
-		}
-
-		return nil
+		return x256.UnmarshalText([]byte(s))
 	}
 
 	var x big.Int
@@ -232,18 +222,14 @@ func (x256 *Uint256) UnmarshalJSON(b []byte) error {
 		return errors.New("invalid json number")
 	}
 
-	if err := x256.setBigInt(&x); err != nil {
-		return fmt.Errorf("invalid json number: %w", err)
-	}
-
-	return nil
+	return x256.setBigInt(&x)
 }
 
 // UnmarshalGQL implements [graphql.Unmarshaler].
 // It decodes a GraphQL String (0x/0X-prefixed hex or non-negative decimal) into x256.
 func (x256 *Uint256) UnmarshalGQL(v any) error {
 	if v == nil {
-		return errors.New("invalid graphql value: nil")
+		return errors.New("invalid graphql string: nil")
 	}
 
 	s, ok := v.(string)
@@ -251,9 +237,5 @@ func (x256 *Uint256) UnmarshalGQL(v any) error {
 		return fmt.Errorf("unsupported graphql value type: %T", v)
 	}
 
-	if err := x256.UnmarshalText([]byte(s)); err != nil {
-		return fmt.Errorf("invalid graphql string: %w", err)
-	}
-
-	return nil
+	return x256.UnmarshalText([]byte(s))
 }

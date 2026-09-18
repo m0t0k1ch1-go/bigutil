@@ -43,17 +43,17 @@ func TestNewUint256(t *testing.T) {
 			{
 				"nil",
 				nil,
-				"invalid big.Int: nil",
+				"invalid big int: nil",
 			},
 			{
 				"negative",
 				big.NewInt(-1),
-				"invalid big.Int: negative",
+				"invalid big int: negative",
 			},
 			{
 				"exceeds 256 bits",
 				new(big.Int).Add(maxUint256, big.NewInt(1)),
-				"invalid big.Int: exceeds 256 bits",
+				"invalid big int: exceeds 256 bits",
 			},
 		}
 
@@ -120,7 +120,7 @@ func TestMustNewUint256(t *testing.T) {
 			{
 				"nil",
 				nil,
-				"invalid big.Int: nil",
+				"invalid big int: nil",
 			},
 		}
 
@@ -190,7 +190,7 @@ func TestNewUint256FromHex(t *testing.T) {
 			{
 				"exceeds 256 bits",
 				"0x1" + strings.Repeat("0", 64),
-				"invalid big.Int: exceeds 256 bits",
+				"invalid big int: exceeds 256 bits",
 			},
 		}
 
@@ -408,12 +408,12 @@ func TestUint256_Scan(t *testing.T) {
 			{
 				"[]byte: empty",
 				[]byte{},
-				"invalid source: empty []byte",
+				"invalid source: empty bytes",
 			},
 			{
 				"[]byte: exceeds 256 bits",
 				append([]byte{0x01}, bytes.Repeat([]byte{0x00}, 32)...),
-				"invalid source: invalid big.Int: exceeds 256 bits",
+				"invalid big int: exceeds 256 bits",
 			},
 		}
 
@@ -568,12 +568,12 @@ func TestUint256_UnmarshalJSON(t *testing.T) {
 			{
 				"number: negative",
 				[]byte(`-1`),
-				"invalid json number: invalid big.Int: negative",
+				"invalid big int: negative",
 			},
 			{
 				"number: exceeds 256 bits",
 				[]byte(`115792089237316195423570985008687907853269984665640564039457584007913129639936`),
-				"invalid json number: invalid big.Int: exceeds 256 bits",
+				"invalid big int: exceeds 256 bits",
 			},
 			{
 				"number: fractional",
@@ -588,27 +588,27 @@ func TestUint256_UnmarshalJSON(t *testing.T) {
 			{
 				"string: empty",
 				[]byte(`""`),
-				"invalid json string: invalid string: empty",
+				"invalid string: empty",
 			},
 			{
 				"string: invalid decimal",
 				[]byte(`"invalid"`),
-				"invalid json string: invalid decimal string",
+				"invalid decimal string",
 			},
 			{
 				"string: negative decimal",
 				[]byte(`"-1"`),
-				"invalid json string: invalid big.Int: negative",
+				"invalid big int: negative",
 			},
 			{
 				"string: missing hex digits after 0x prefix",
 				[]byte(`"0x"`),
-				"invalid json string: invalid hex string: missing hex digits after 0x/0X prefix",
+				"invalid hex string: missing hex digits after 0x/0X prefix",
 			},
 			{
 				"string: missing hex digits after 0X prefix",
 				[]byte(`"0X"`),
-				"invalid json string: invalid hex string: missing hex digits after 0x/0X prefix",
+				"invalid hex string: missing hex digits after 0x/0X prefix",
 			},
 			{
 				"string: hex contains invalid escape sequences",
@@ -618,12 +618,12 @@ func TestUint256_UnmarshalJSON(t *testing.T) {
 			{
 				"string: hex contains non-hex characters",
 				[]byte(`"0xg"`),
-				"invalid json string: invalid hex string",
+				"invalid hex string",
 			},
 			{
 				"string: hex exceeds 256 bits",
 				[]byte(`"0x1` + strings.Repeat("0", 64) + `"`),
-				"invalid json string: invalid big.Int: exceeds 256 bits",
+				"invalid big int: exceeds 256 bits",
 			},
 		}
 
@@ -745,7 +745,7 @@ func TestUint256_UnmarshalGQL(t *testing.T) {
 			{
 				"nil",
 				nil,
-				"invalid graphql value: nil",
+				"invalid graphql string: nil",
 			},
 			{
 				"int",
@@ -755,37 +755,37 @@ func TestUint256_UnmarshalGQL(t *testing.T) {
 			{
 				"string: empty",
 				"",
-				"invalid graphql string: invalid string: empty",
+				"invalid string: empty",
 			},
 			{
 				"string: invalid decimal",
 				"invalid",
-				"invalid graphql string: invalid decimal string",
+				"invalid decimal string",
 			},
 			{
 				"string: negative decimal",
 				"-1",
-				"invalid graphql string: invalid big.Int: negative",
+				"invalid big int: negative",
 			},
 			{
 				"string: missing hex digits after 0x prefix",
 				"0x",
-				"invalid graphql string: invalid hex string: missing hex digits after 0x/0X prefix",
+				"invalid hex string: missing hex digits after 0x/0X prefix",
 			},
 			{
 				"string: missing hex digits after 0X prefix",
 				"0X",
-				"invalid graphql string: invalid hex string: missing hex digits after 0x/0X prefix",
+				"invalid hex string: missing hex digits after 0x/0X prefix",
 			},
 			{
 				"string: hex contains non-hex characters",
 				"0xg",
-				"invalid graphql string: invalid hex string",
+				"invalid hex string",
 			},
 			{
 				"string: hex exceeds 256 bits",
 				"0x1" + strings.Repeat("0", 64),
-				"invalid graphql string: invalid big.Int: exceeds 256 bits",
+				"invalid big int: exceeds 256 bits",
 			},
 		}
 
