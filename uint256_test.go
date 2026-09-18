@@ -46,17 +46,17 @@ func TestNewUint256(t *testing.T) {
 			{
 				"nil",
 				nil,
-				"invalid big int: nil",
+				"invalid big integer: nil",
 			},
 			{
 				"negative",
 				big.NewInt(-1),
-				"invalid big int: negative",
+				"invalid big integer: negative",
 			},
 			{
 				"exceeds 256 bits",
 				new(big.Int).Add(maxUint256, big.NewInt(1)),
-				"invalid big int: exceeds 256 bits",
+				"invalid big integer: exceeds 256 bits",
 			},
 		}
 
@@ -123,7 +123,7 @@ func TestMustNewUint256(t *testing.T) {
 			{
 				"nil",
 				nil,
-				"invalid big int: nil",
+				"invalid big integer: nil",
 			},
 		}
 
@@ -168,32 +168,47 @@ func TestNewUint256FromHex(t *testing.T) {
 			{
 				"empty",
 				"",
-				"invalid hex string: empty",
+				"invalid hexadecimal string: empty",
 			},
 			{
 				"missing 0x/0X prefix",
 				"0",
-				"invalid hex string: missing 0x/0X prefix",
+				"invalid hexadecimal string: missing 0x/0X prefix",
 			},
 			{
-				"missing hex digits after 0x prefix",
+				"missing hexadecimal digits after 0x prefix",
 				"0x",
-				"invalid hex string: missing hex digits after 0x/0X prefix",
+				"invalid hexadecimal string: missing hexadecimal digits after 0x/0X prefix",
 			},
 			{
-				"missing hex digits after 0X prefix",
+				"missing hexadecimal digits after 0X prefix",
 				"0X",
-				"invalid hex string: missing hex digits after 0x/0X prefix",
+				"invalid hexadecimal string: missing hexadecimal digits after 0x/0X prefix",
 			},
 			{
-				"contains non-hex characters",
+				"signed positive",
+				"0x+1",
+				"invalid hexadecimal string: must not be signed",
+			},
+			{
+				"signed negative",
+				"0x-1",
+				"invalid hexadecimal string: must not be signed",
+			},
+			{
+				"contains non-hexadecimal characters",
 				"0xg",
-				"invalid hex string",
+				"invalid hexadecimal string: must contain only hexadecimal digits",
+			},
+			{
+				"contains underscore",
+				"0x0_0",
+				"invalid hexadecimal string: must contain only hexadecimal digits",
 			},
 			{
 				"exceeds 256 bits",
 				"0x1" + strings.Repeat("0", 64),
-				"invalid big int: exceeds 256 bits",
+				"invalid big integer: exceeds 256 bits",
 			},
 		}
 
@@ -273,7 +288,7 @@ func TestMustNewUint256FromHex(t *testing.T) {
 			{
 				"empty",
 				"",
-				"invalid hex string: empty",
+				"invalid hexadecimal string: empty",
 			},
 		}
 
@@ -416,7 +431,7 @@ func TestUint256_Scan(t *testing.T) {
 			{
 				"bytes: exceeds 256 bits",
 				append([]byte{0x01}, bytes.Repeat([]byte{0x00}, 32)...),
-				"invalid big int: exceeds 256 bits",
+				"invalid big integer: exceeds 256 bits",
 			},
 		}
 
@@ -609,74 +624,104 @@ func TestUint256_JSONUnmarshaling(t *testing.T) {
 				"unsupported json token kind: null",
 			},
 			{
-				"string: hex contains invalid escape sequences",
-				[]byte(`"0x\x"`),
-				"invalid json string",
+				"quoted string: contains invalid escape sequences",
+				[]byte(`"\x"`),
+				"invalid string",
 			},
 			{
-				"string: empty",
+				"quoted string: empty",
 				[]byte(`""`),
 				"invalid string: empty",
 			},
 			{
-				"string: missing hex digits after 0x prefix",
+				"quoted string: missing hexadecimal digits after 0x prefix",
 				[]byte(`"0x"`),
-				"invalid hex string: missing hex digits after 0x/0X prefix",
+				"invalid hexadecimal string: missing hexadecimal digits after 0x/0X prefix",
 			},
 			{
-				"string: missing hex digits after 0X prefix",
+				"quoted string: missing hexadecimal digits after 0X prefix",
 				[]byte(`"0X"`),
-				"invalid hex string: missing hex digits after 0x/0X prefix",
+				"invalid hexadecimal string: missing hexadecimal digits after 0x/0X prefix",
 			},
 			{
-				"string: hex contains non-hex characters",
+				"quoted hexadecimal string: signed positive",
+				[]byte(`"0x+1"`),
+				"invalid hexadecimal string: must not be signed",
+			},
+			{
+				"quoted hexadecimal string: signed negative",
+				[]byte(`"0x-1"`),
+				"invalid hexadecimal string: must not be signed",
+			},
+			{
+				"quoted hexadecimal string: contains non-hexadecimal characters",
 				[]byte(`"0xg"`),
-				"invalid hex string",
+				"invalid hexadecimal string: must contain only hexadecimal digits",
 			},
 			{
-				"string: hex exceeds 256 bits",
+				"quoted hexadecimal string: contains underscores",
+				[]byte(`"0x0_0"`),
+				"invalid hexadecimal string: must contain only hexadecimal digits",
+			},
+			{
+				"quoted hexadecimal string: exceeds 256 bits",
 				[]byte(`"0x1` + strings.Repeat("0", 64) + `"`),
-				"invalid big int: exceeds 256 bits",
+				"invalid big integer: exceeds 256 bits",
 			},
 			{
-				"string: invalid decimal",
-				[]byte(`"invalid"`),
-				"invalid decimal string",
+				"quoted decimal string: signed positive",
+				[]byte(`"+1"`),
+				"invalid decimal string: must not be signed",
 			},
 			{
-				"string: negative decimal",
+				"quoted decimal string: signed negative",
 				[]byte(`"-1"`),
-				"invalid big int: negative",
+				"invalid decimal string: must not be signed",
 			},
 			{
-				"string: decimal exceeds 256 bits",
+				"quoted decimal string: fractional",
+				[]byte(`"0.0"`),
+				"invalid decimal string: must contain only decimal digits",
+			},
+			{
+				"quoted decimal string: exponential",
+				[]byte(`"0e0"`),
+				"invalid decimal string: must contain only decimal digits",
+			},
+			{
+				"quoted decimal string: contains underscores",
+				[]byte(`"0_0"`),
+				"invalid decimal string: must contain only decimal digits",
+			},
+			{
+				"quoted decimal string: exceeds 256 bits",
 				[]byte(`"115792089237316195423570985008687907853269984665640564039457584007913129639936"`),
-				"invalid big int: exceeds 256 bits",
+				"invalid big integer: exceeds 256 bits",
 			},
 			{
-				"number: truncated",
+				"unquoted decimal string: truncated",
 				[]byte(`0.`),
-				"failed to read json number",
+				"failed to read value",
 			},
 			{
-				"number: fractional",
-				[]byte(`0.0`),
-				"invalid json number",
-			},
-			{
-				"number: exponential",
-				[]byte(`0e0`),
-				"invalid json number",
-			},
-			{
-				"number: negative",
+				"unquoted decimal string: signed negative",
 				[]byte(`-1`),
-				"invalid big int: negative",
+				"invalid decimal string: must not be signed",
 			},
 			{
-				"number: exceeds 256 bits",
+				"unquoted decimal string: fractional",
+				[]byte(`0.0`),
+				"invalid decimal string: must contain only decimal digits",
+			},
+			{
+				"unquoted decimal string: exponential",
+				[]byte(`0e0`),
+				"invalid decimal string: must contain only decimal digits",
+			},
+			{
+				"unquoted decimal string: exceeds 256 bits",
 				[]byte(`115792089237316195423570985008687907853269984665640564039457584007913129639936`),
-				"invalid big int: exceeds 256 bits",
+				"invalid big integer: exceeds 256 bits",
 			},
 		}
 
@@ -700,82 +745,97 @@ func TestUint256_JSONUnmarshaling(t *testing.T) {
 			want string
 		}{
 			{
-				"string: 0x-prefixed hex zero",
+				"quoted hexadecimal string: 0x-prefixed zero",
 				[]byte(`"0x0"`),
 				"0x0",
 			},
 			{
-				"string: 0X-prefixed hex zero",
+				"quoted hexadecimal string: 0X-prefixed zero",
 				[]byte(`"0X0"`),
 				"0x0",
 			},
 			{
-				"string: 0x-prefixed hex zero with leading zeros",
+				"quoted hexadecimal string: 0x-prefixed zero with leading zeros",
 				[]byte(`"0x` + strings.Repeat("0", 64) + `"`),
 				"0x0",
 			},
 			{
-				"string: 0X-prefixed hex zero with leading zeros",
+				"quoted hexadecimal string: 0X-prefixed zero with leading zeros",
 				[]byte(`"0X` + strings.Repeat("0", 64) + `"`),
 				"0x0",
 			},
 			{
-				"string: 0x-prefixed hex one",
+				"quoted hexadecimal string: 0x-prefixed one",
 				[]byte(`"0x1"`),
 				"0x1",
 			},
 			{
-				"string: 0X-prefixed hex one",
+				"quoted hexadecimal string: 0X-prefixed one",
 				[]byte(`"0X1"`),
 				"0x1",
 			},
 			{
-				"string: 0x-prefixed hex one with leading zeros",
+				"quoted hexadecimal string: 0x-prefixed one with leading zeros",
 				[]byte(`"0x` + strings.Repeat("0", 63) + `1"`),
 				"0x1",
 			},
 			{
-				"string: 0X-prefixed hex one with leading zeros",
+				"quoted hexadecimal string: 0X-prefixed one with leading zeros",
 				[]byte(`"0X` + strings.Repeat("0", 63) + `1"`),
 				"0x1",
 			},
 			{
-				"string: 0x-prefixed mixedcase hex max",
+				"quoted hexadecimal string: 0x-prefixed mixedcase max",
 				[]byte(`"0x` + strings.Repeat("fF", 32) + `"`),
 				"0x" + strings.Repeat("f", 64),
 			},
 			{
-				"string: 0X-prefixed mixedcase hex max",
+				"quoted hexadecimal string: 0X-prefixed mixedcase max",
 				[]byte(`"0X` + strings.Repeat("fF", 32) + `"`),
 				"0x" + strings.Repeat("f", 64),
 			},
 			{
-				"string: decimal zero",
+				"quoted decimal string: zero",
 				[]byte(`"0"`),
 				"0x0",
 			},
 			{
-				"string: decimal one",
+				"quoted decimal string: zero with leading zero",
+				[]byte(`"00"`),
+				"0x0",
+			},
+			{
+				"quoted decimal string: one",
 				[]byte(`"1"`),
 				"0x1",
 			},
 			{
-				"string: decimal max",
+				"quoted decimal string: one with leading zero",
+				[]byte(`"01"`),
+				"0x1",
+			},
+			{
+				"quoted decimal string: max",
 				[]byte(`"115792089237316195423570985008687907853269984665640564039457584007913129639935"`),
 				"0x" + strings.Repeat("f", 64),
 			},
 			{
-				"number: zero",
+				"quoted decimal string: max with leading zero",
+				[]byte(`"0115792089237316195423570985008687907853269984665640564039457584007913129639935"`),
+				"0x" + strings.Repeat("f", 64),
+			},
+			{
+				"unquoted decimal string: zero",
 				[]byte(`0`),
 				"0x0",
 			},
 			{
-				"number: one",
+				"unquoted decimal string: one",
 				[]byte(`1`),
 				"0x1",
 			},
 			{
-				"number: max",
+				"unquoted decimal string: max",
 				[]byte(`115792089237316195423570985008687907853269984665640564039457584007913129639935`),
 				"0x" + strings.Repeat("f", 64),
 			},
@@ -806,12 +866,12 @@ func TestUint256_UnmarshalGQL(t *testing.T) {
 			{
 				"nil",
 				nil,
-				"unsupported graphql value: nil",
+				"unsupported value: nil",
 			},
 			{
 				"int",
 				int(0),
-				"unsupported graphql value type: int",
+				"unsupported value type: int",
 			},
 			{
 				"string: empty",
@@ -819,39 +879,69 @@ func TestUint256_UnmarshalGQL(t *testing.T) {
 				"invalid string: empty",
 			},
 			{
-				"string: missing hex digits after 0x prefix",
+				"string: missing hexadecimal digits after 0x prefix",
 				"0x",
-				"invalid hex string: missing hex digits after 0x/0X prefix",
+				"invalid hexadecimal string: missing hexadecimal digits after 0x/0X prefix",
 			},
 			{
-				"string: missing hex digits after 0X prefix",
+				"string: missing hexadecimal digits after 0X prefix",
 				"0X",
-				"invalid hex string: missing hex digits after 0x/0X prefix",
+				"invalid hexadecimal string: missing hexadecimal digits after 0x/0X prefix",
 			},
 			{
-				"string: hex contains non-hex characters",
+				"hexadecimal string: signed positive",
+				"0x+1",
+				"invalid hexadecimal string: must not be signed",
+			},
+			{
+				"hexadecimal string: signed negative",
+				"0x-1",
+				"invalid hexadecimal string: must not be signed",
+			},
+			{
+				"hexadecimal string: contains non-hexadecimal characters",
 				"0xg",
-				"invalid hex string",
+				"invalid hexadecimal string: must contain only hexadecimal digits",
 			},
 			{
-				"string: hex exceeds 256 bits",
+				"hexadecimal string: contains underscores",
+				"0x0_0",
+				"invalid hexadecimal string: must contain only hexadecimal digits",
+			},
+			{
+				"hexadecimal string: exceeds 256 bits",
 				"0x1" + strings.Repeat("0", 64),
-				"invalid big int: exceeds 256 bits",
+				"invalid big integer: exceeds 256 bits",
 			},
 			{
-				"string: invalid decimal",
-				"invalid",
-				"invalid decimal string",
+				"decimal string: signed positive",
+				"+1",
+				"invalid decimal string: must not be signed",
 			},
 			{
-				"string: negative decimal",
+				"decimal string: signed negative",
 				"-1",
-				"invalid big int: negative",
+				"invalid decimal string: must not be signed",
 			},
 			{
-				"string: decimal exceeds 256 bits",
+				"decimal string: fractional",
+				"0.0",
+				"invalid decimal string: must contain only decimal digits",
+			},
+			{
+				"decimal string: exponential",
+				"0e0",
+				"invalid decimal string: must contain only decimal digits",
+			},
+			{
+				"decimal string: contains underscores",
+				"0_0",
+				"invalid decimal string: must contain only decimal digits",
+			},
+			{
+				"decimal string: exceeds 256 bits",
 				"115792089237316195423570985008687907853269984665640564039457584007913129639936",
-				"invalid big int: exceeds 256 bits",
+				"invalid big integer: exceeds 256 bits",
 			},
 		}
 
@@ -871,68 +961,83 @@ func TestUint256_UnmarshalGQL(t *testing.T) {
 			want string
 		}{
 			{
-				"string: 0x-prefixed hex zero",
+				"hexadecimal string: 0x-prefixed zero",
 				"0x0",
 				"0x0",
 			},
 			{
-				"string: 0X-prefixed hex zero",
+				"hexadecimal string: 0X-prefixed zero",
 				"0X0",
 				"0x0",
 			},
 			{
-				"string: 0x-prefixed hex zero with leading zeros",
+				"hexadecimal string: 0x-prefixed zero with leading zeros",
 				"0x" + strings.Repeat("0", 64),
 				"0x0",
 			},
 			{
-				"string: 0X-prefixed hex zero with leading zeros",
+				"hexadecimal string: 0X-prefixed zero with leading zeros",
 				"0X" + strings.Repeat("0", 64),
 				"0x0",
 			},
 			{
-				"string: 0x-prefixed hex one",
+				"hexadecimal string: 0x-prefixed one",
 				"0x1",
 				"0x1",
 			},
 			{
-				"string: 0X-prefixed hex one",
+				"hexadecimal string: 0X-prefixed one",
 				"0X1",
 				"0x1",
 			},
 			{
-				"string: 0x-prefixed hex one with leading zeros",
+				"hexadecimal string: 0x-prefixed one with leading zeros",
 				"0x" + strings.Repeat("0", 63) + "1",
 				"0x1",
 			},
 			{
-				"string: 0X-prefixed hex one with leading zeros",
+				"hexadecimal string: 0X-prefixed one with leading zeros",
 				"0X" + strings.Repeat("0", 63) + "1",
 				"0x1",
 			},
 			{
-				"string: 0x-prefixed mixedcase hex max",
+				"hexadecimal string: 0x-prefixed mixedcase max",
 				"0x" + strings.Repeat("fF", 32),
 				"0x" + strings.Repeat("f", 64),
 			},
 			{
-				"string: 0X-prefixed mixedcase hex max",
+				"hexadecimal string: 0X-prefixed mixedcase max",
 				"0X" + strings.Repeat("fF", 32),
 				"0x" + strings.Repeat("f", 64),
 			},
 			{
-				"string: decimal zero",
+				"decimal string: zero",
 				"0",
 				"0x0",
 			},
 			{
-				"string: decimal one",
+				"decimal string: zero with leading zero",
+				"00",
+				"0x0",
+			},
+			{
+				"decimal string: one",
 				"1",
 				"0x1",
 			},
 			{
-				"string: decimal max",
+				"decimal string: one with leading zero",
+				"01",
+				"0x1",
+			},
+			{
+				"decimal string: max",
 				"115792089237316195423570985008687907853269984665640564039457584007913129639935",
+				"0x" + strings.Repeat("f", 64),
+			},
+			{
+				"decimal string: max with leading zero",
+				"0115792089237316195423570985008687907853269984665640564039457584007913129639935",
 				"0x" + strings.Repeat("f", 64),
 			},
 		}
