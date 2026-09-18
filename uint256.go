@@ -114,6 +114,27 @@ func (x256 *Uint256) setHex(s string) error {
 	return x256.setBigInt(&x)
 }
 
+// NewUint256FromDecimal returns a new [Uint256] from a decimal integer string.
+// The string must not be signed; leading zeros are allowed and ignored.
+func NewUint256FromDecimal(s string) (Uint256, error) {
+	var x256 Uint256
+	if err := x256.setDecimal(s); err != nil {
+		return Uint256{}, err
+	}
+
+	return x256, nil
+}
+
+// MustNewUint256FromDecimal is like [NewUint256FromDecimal] but panics if the input is invalid.
+func MustNewUint256FromDecimal(s string) Uint256 {
+	x256, err := NewUint256FromDecimal(s)
+	if err != nil {
+		panic(err)
+	}
+
+	return x256
+}
+
 func (x256 *Uint256) setDecimal(s string) error {
 	if len(s) == 0 {
 		return errors.New("invalid decimal string: empty")
