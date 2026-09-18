@@ -31,7 +31,7 @@ type Uint256 struct {
 	x big.Int
 }
 
-// NewUint256 returns a new Uint256.
+// NewUint256 returns a new [Uint256] from a [big.Int].
 func NewUint256(x *big.Int) (Uint256, error) {
 	var x256 Uint256
 	if err := x256.setBigInt(x); err != nil {
@@ -41,7 +41,7 @@ func NewUint256(x *big.Int) (Uint256, error) {
 	return x256, nil
 }
 
-// MustNewUint256 panics if the input is invalid.
+// MustNewUint256 is like [NewUint256] but panics if the input is invalid.
 func MustNewUint256(x *big.Int) Uint256 {
 	x256, err := NewUint256(x)
 	if err != nil {
@@ -67,7 +67,7 @@ func (x256 *Uint256) setBigInt(x *big.Int) error {
 	return nil
 }
 
-// NewUint256FromHex returns a new Uint256 from a hex string.
+// NewUint256FromHex returns a new [Uint256] from a hex string.
 // The string must have a 0x/0X prefix; leading zeros are allowed and ignored.
 func NewUint256FromHex(s string) (Uint256, error) {
 	var x256 Uint256
@@ -78,7 +78,7 @@ func NewUint256FromHex(s string) (Uint256, error) {
 	return x256, nil
 }
 
-// MustNewUint256FromHex panics if the input is invalid.
+// MustNewUint256FromHex is like [NewUint256FromHex] but panics if the input is invalid.
 func MustNewUint256FromHex(s string) Uint256 {
 	x256, err := NewUint256FromHex(s)
 	if err != nil {
@@ -114,7 +114,7 @@ func (x256 *Uint256) setHex(s string) error {
 	return x256.setBigInt(&x)
 }
 
-// NewUint256FromUint64 returns a new Uint256 from a uint64.
+// NewUint256FromUint64 returns a new [Uint256] from a uint64.
 func NewUint256FromUint64(i uint64) Uint256 {
 	var x256 Uint256
 	x256.x.SetUint64(i)
@@ -122,7 +122,7 @@ func NewUint256FromUint64(i uint64) Uint256 {
 	return x256
 }
 
-// BigInt returns a copy of the underlying big.Int.
+// BigInt returns a copy of the underlying [big.Int].
 func (x256 Uint256) BigInt() *big.Int {
 	var x big.Int
 	x.Set(&x256.x)
@@ -130,14 +130,14 @@ func (x256 Uint256) BigInt() *big.Int {
 	return &x
 }
 
-// String implements fmt.Stringer.
-// It returns the value as a 0x-prefixed lowercase hex string with no leading zeros (zero is "0x0").
+// String implements [fmt.Stringer].
+// It encodes x256 as a 0x-prefixed lowercase hex string with no leading zeros (zero is "0x0").
 func (x256 Uint256) String() string {
 	return "0x" + x256.x.Text(16)
 }
 
-// Value implements driver.Valuer.
-// It returns the value as a minimal big-endian []byte (never nil); zero is encoded as a single 0x00 byte.
+// Value implements [driver.Valuer].
+// It encodes x256 as a minimal big-endian []byte (never nil); zero becomes a single 0x00 byte.
 func (x256 Uint256) Value() (driver.Value, error) {
 	b := x256.x.Bytes()
 	if len(b) == 0 {
@@ -147,8 +147,8 @@ func (x256 Uint256) Value() (driver.Value, error) {
 	return b, nil
 }
 
-// Scan implements sql.Scanner.
-// It accepts a big-endian []byte (length 1-32).
+// Scan implements [sql.Scanner].
+// It decodes a big-endian []byte (length 1-32) into x256.
 func (x256 *Uint256) Scan(src any) error {
 	if src == nil {
 		return errors.New("invalid source: nil")
@@ -172,20 +172,20 @@ func (x256 *Uint256) Scan(src any) error {
 	return nil
 }
 
-// MarshalText implements encoding.TextMarshaler.
-// It returns the value as a 0x-prefixed lowercase hex string with no leading zeros (zero is "0x0").
+// MarshalText implements [encoding.TextMarshaler].
+// It encodes x256 as a 0x-prefixed lowercase hex string with no leading zeros (zero is "0x0").
 func (x256 Uint256) MarshalText() ([]byte, error) {
 	return []byte(x256.String()), nil
 }
 
-// MarshalGQL implements graphql.Marshaler.
-// It writes the value as a quoted 0x-prefixed lowercase hex string with no leading zeros (zero is "0x0").
+// MarshalGQL implements [graphql.Marshaler].
+// It encodes x256 as a quoted 0x-prefixed lowercase hex string with no leading zeros (zero is "0x0") and writes it to w.
 func (x256 Uint256) MarshalGQL(w io.Writer) {
 	_, _ = io.WriteString(w, strconv.Quote(x256.String()))
 }
 
-// UnmarshalText implements encoding.TextUnmarshaler.
-// It accepts either a 0x/0X-prefixed hex string or a non-negative decimal string.
+// UnmarshalText implements [encoding.TextUnmarshaler].
+// It decodes a 0x/0X-prefixed hex string or a non-negative decimal string into x256.
 func (x256 *Uint256) UnmarshalText(text []byte) error {
 	if len(text) == 0 {
 		return errors.New("invalid string: empty")
@@ -204,8 +204,8 @@ func (x256 *Uint256) UnmarshalText(text []byte) error {
 	return x256.setBigInt(&x)
 }
 
-// UnmarshalJSON implements json.Unmarshaler.
-// It accepts a JSON string (0x/0X-prefixed hex or non-negative decimal) or a JSON number (non-negative integer).
+// UnmarshalJSON implements [json.Unmarshaler].
+// It decodes a JSON string (0x/0X-prefixed hex or non-negative decimal) or a JSON number (non-negative integer) into x256.
 func (x256 *Uint256) UnmarshalJSON(b []byte) error {
 	if len(b) == 0 {
 		return errors.New("invalid json value: empty")
