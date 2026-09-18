@@ -1,7 +1,9 @@
 package bigutil
 
 import (
+	"database/sql"
 	"database/sql/driver"
+	"encoding"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,10 +11,19 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+
+	"github.com/99designs/gqlgen/graphql"
 )
 
-const (
-	maxUint256Bits = 256
+var (
+	_ fmt.Stringer             = Uint256{}
+	_ driver.Valuer            = Uint256{}
+	_ sql.Scanner              = &Uint256{}
+	_ encoding.TextMarshaler   = Uint256{}
+	_ graphql.Marshaler        = Uint256{}
+	_ encoding.TextUnmarshaler = &Uint256{}
+	_ json.Unmarshaler         = &Uint256{}
+	_ graphql.Unmarshaler      = &Uint256{}
 )
 
 // Uint256 represents an unsigned 256-bit integer.
@@ -47,8 +58,8 @@ func (x256 *Uint256) setBigInt(x *big.Int) error {
 	if x.Sign() < 0 {
 		return errors.New("invalid big.Int: negative")
 	}
-	if x.BitLen() > maxUint256Bits {
-		return fmt.Errorf("invalid big.Int: exceeds %d bits", maxUint256Bits)
+	if x.BitLen() > 256 {
+		return fmt.Errorf("invalid big.Int: exceeds 256 bits")
 	}
 
 	x256.x.Set(x)
