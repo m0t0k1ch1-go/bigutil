@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding"
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"math/big"
 	"strings"
@@ -27,8 +27,11 @@ func TestUint256(t *testing.T) {
 	require.Implements(t, (*driver.Valuer)(nil), &x256)
 	require.Implements(t, (*sql.Scanner)(nil), &x256)
 	require.Implements(t, (*encoding.TextMarshaler)(nil), &x256)
+	require.Implements(t, (*json.MarshalerTo)(nil), &x256)
+	require.Implements(t, (*json.Marshaler)(nil), &x256)
 	require.Implements(t, (*graphql.Marshaler)(nil), &x256)
 	require.Implements(t, (*encoding.TextUnmarshaler)(nil), &x256)
+	require.Implements(t, (*json.UnmarshalerFrom)(nil), &x256)
 	require.Implements(t, (*json.Unmarshaler)(nil), &x256)
 	require.Implements(t, (*graphql.Unmarshaler)(nil), &x256)
 }
@@ -393,7 +396,7 @@ func TestUint256_Scan(t *testing.T) {
 			{
 				"nil",
 				nil,
-				"invalid source: nil",
+				"unsupported source: nil",
 			},
 			{
 				"int64",
@@ -406,12 +409,12 @@ func TestUint256_Scan(t *testing.T) {
 				"unsupported source type: string",
 			},
 			{
-				"[]byte: empty",
+				"bytes: empty",
 				[]byte{},
 				"invalid source: empty bytes",
 			},
 			{
-				"[]byte: exceeds 256 bits",
+				"bytes: exceeds 256 bits",
 				append([]byte{0x01}, bytes.Repeat([]byte{0x00}, 32)...),
 				"invalid big int: exceeds 256 bits",
 			},
@@ -433,27 +436,27 @@ func TestUint256_Scan(t *testing.T) {
 			want string
 		}{
 			{
-				"[]byte: zero",
+				"bytes: zero",
 				[]byte{0x00},
 				"0x0",
 			},
 			{
-				"[]byte: zero with leading zeros",
+				"bytes: zero with leading zeros",
 				bytes.Repeat([]byte{0x00}, 32),
 				"0x0",
 			},
 			{
-				"[]byte: one",
+				"bytes: one",
 				[]byte{0x01},
 				"0x1",
 			},
 			{
-				"[]byte: one with leading zeros",
+				"bytes: one with leading zeros",
 				append(bytes.Repeat([]byte{0x00}, 31), 0x01),
 				"0x1",
 			},
 			{
-				"[]byte: max",
+				"bytes: max",
 				bytes.Repeat([]byte{0xff}, 32),
 				"0x" + strings.Repeat("f", 64),
 			},
@@ -470,7 +473,25 @@ func TestUint256_Scan(t *testing.T) {
 	})
 }
 
-func TestUint256_MarshalText(t *testing.T) {
+func TestUint256_JSONMarshaling(t *testing.T) {
+	encs := []struct {
+		name    string
+		marshal func(bigutil.Uint256) ([]byte, error)
+	}{
+		{
+			"json.Marshal",
+			func(x256 bigutil.Uint256) ([]byte, error) {
+				return json.Marshal(x256)
+			},
+		},
+		{
+			"MarshalJSON",
+			func(x256 bigutil.Uint256) ([]byte, error) {
+				return x256.MarshalJSON()
+			},
+		},
+	}
+
 	t.Run("success", func(t *testing.T) {
 		tcs := []struct {
 			name string
@@ -480,30 +501,34 @@ func TestUint256_MarshalText(t *testing.T) {
 			{
 				"zero value",
 				bigutil.Uint256{},
-				[]byte("0x0"),
+				[]byte(`"0x0"`),
 			},
 			{
 				"zero",
 				bigutil.NewUint256FromUint64(0),
-				[]byte("0x0"),
+				[]byte(`"0x0"`),
 			},
 			{
 				"one",
 				bigutil.NewUint256FromUint64(1),
-				[]byte("0x1"),
+				[]byte(`"0x1"`),
 			},
 			{
 				"max",
 				bigutil.MustNewUint256(maxUint256),
-				[]byte("0x" + strings.Repeat("f", 64)),
+				[]byte(`"0x` + strings.Repeat("f", 64) + `"`),
 			},
 		}
 
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
-				b, err := tc.in.MarshalText()
-				require.NoError(t, err)
-				require.Equal(t, tc.out, b)
+				for _, enc := range encs {
+					t.Run(enc.name, func(t *testing.T) {
+						b, err := enc.marshal(tc.in)
+						require.NoError(t, err)
+						require.Equal(t, tc.out, b)
+					})
+				}
 			})
 		}
 	})
@@ -548,7 +573,25 @@ func TestUint256_MarshalGQL(t *testing.T) {
 	})
 }
 
-func TestUint256_UnmarshalJSON(t *testing.T) {
+func TestUint256_JSONUnmarshaling(t *testing.T) {
+	decs := []struct {
+		name      string
+		unmarshal func([]byte, *bigutil.Uint256) error
+	}{
+		{
+			"json.Unmarshal",
+			func(b []byte, x256 *bigutil.Uint256) error {
+				return json.Unmarshal(b, x256)
+			},
+		},
+		{
+			"UnmarshalJSON",
+			func(b []byte, x256 *bigutil.Uint256) error {
+				return x256.UnmarshalJSON(b)
+			},
+		},
+	}
+
 	t.Run("failure", func(t *testing.T) {
 		tcs := []struct {
 			name string
@@ -558,47 +601,22 @@ func TestUint256_UnmarshalJSON(t *testing.T) {
 			{
 				"empty",
 				[]byte{},
-				"invalid json value: empty",
+				"",
 			},
 			{
 				"null",
 				[]byte(`null`),
-				"invalid json value: null",
+				"unsupported json token kind: null",
 			},
 			{
-				"number: negative",
-				[]byte(`-1`),
-				"invalid big int: negative",
-			},
-			{
-				"number: exceeds 256 bits",
-				[]byte(`115792089237316195423570985008687907853269984665640564039457584007913129639936`),
-				"invalid big int: exceeds 256 bits",
-			},
-			{
-				"number: fractional",
-				[]byte(`0.0`),
-				"invalid json number",
-			},
-			{
-				"number: exponential",
-				[]byte(`0e0`),
-				"invalid json number",
+				"string: hex contains invalid escape sequences",
+				[]byte(`"0x\x"`),
+				"invalid json string",
 			},
 			{
 				"string: empty",
 				[]byte(`""`),
 				"invalid string: empty",
-			},
-			{
-				"string: invalid decimal",
-				[]byte(`"invalid"`),
-				"invalid decimal string",
-			},
-			{
-				"string: negative decimal",
-				[]byte(`"-1"`),
-				"invalid big int: negative",
 			},
 			{
 				"string: missing hex digits after 0x prefix",
@@ -611,11 +629,6 @@ func TestUint256_UnmarshalJSON(t *testing.T) {
 				"invalid hex string: missing hex digits after 0x/0X prefix",
 			},
 			{
-				"string: hex contains invalid escape sequences",
-				[]byte(`"0x\x"`),
-				"invalid json string",
-			},
-			{
 				"string: hex contains non-hex characters",
 				[]byte(`"0xg"`),
 				"invalid hex string",
@@ -625,13 +638,57 @@ func TestUint256_UnmarshalJSON(t *testing.T) {
 				[]byte(`"0x1` + strings.Repeat("0", 64) + `"`),
 				"invalid big int: exceeds 256 bits",
 			},
+			{
+				"string: invalid decimal",
+				[]byte(`"invalid"`),
+				"invalid decimal string",
+			},
+			{
+				"string: negative decimal",
+				[]byte(`"-1"`),
+				"invalid big int: negative",
+			},
+			{
+				"string: decimal exceeds 256 bits",
+				[]byte(`"115792089237316195423570985008687907853269984665640564039457584007913129639936"`),
+				"invalid big int: exceeds 256 bits",
+			},
+			{
+				"number: truncated",
+				[]byte(`0.`),
+				"failed to read json number",
+			},
+			{
+				"number: fractional",
+				[]byte(`0.0`),
+				"invalid json number",
+			},
+			{
+				"number: exponential",
+				[]byte(`0e0`),
+				"invalid json number",
+			},
+			{
+				"number: negative",
+				[]byte(`-1`),
+				"invalid big int: negative",
+			},
+			{
+				"number: exceeds 256 bits",
+				[]byte(`115792089237316195423570985008687907853269984665640564039457584007913129639936`),
+				"invalid big int: exceeds 256 bits",
+			},
 		}
 
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
-				var x256 bigutil.Uint256
-				err := x256.UnmarshalJSON(tc.in)
-				require.ErrorContains(t, err, tc.want)
+				for _, dec := range decs {
+					t.Run(dec.name, func(t *testing.T) {
+						var x256 bigutil.Uint256
+						err := dec.unmarshal(tc.in, &x256)
+						require.ErrorContains(t, err, tc.want)
+					})
+				}
 			})
 		}
 	})
@@ -642,36 +699,6 @@ func TestUint256_UnmarshalJSON(t *testing.T) {
 			in   []byte
 			want string
 		}{
-			{
-				"number: zero",
-				[]byte(`0`),
-				"0x0",
-			},
-			{
-				"number: one",
-				[]byte(`1`),
-				"0x1",
-			},
-			{
-				"number: max",
-				[]byte(`115792089237316195423570985008687907853269984665640564039457584007913129639935`),
-				"0x" + strings.Repeat("f", 64),
-			},
-			{
-				"string: decimal zero",
-				[]byte(`"0"`),
-				"0x0",
-			},
-			{
-				"string: decimal one",
-				[]byte(`"1"`),
-				"0x1",
-			},
-			{
-				"string: decimal max",
-				[]byte(`"115792089237316195423570985008687907853269984665640564039457584007913129639935"`),
-				"0x" + strings.Repeat("f", 64),
-			},
 			{
 				"string: 0x-prefixed hex zero",
 				[]byte(`"0x0"`),
@@ -715,21 +742,55 @@ func TestUint256_UnmarshalJSON(t *testing.T) {
 			{
 				"string: 0x-prefixed mixedcase hex max",
 				[]byte(`"0x` + strings.Repeat("fF", 32) + `"`),
-				"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+				"0x" + strings.Repeat("f", 64),
 			},
 			{
 				"string: 0X-prefixed mixedcase hex max",
 				[]byte(`"0X` + strings.Repeat("fF", 32) + `"`),
-				"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+				"0x" + strings.Repeat("f", 64),
+			},
+			{
+				"string: decimal zero",
+				[]byte(`"0"`),
+				"0x0",
+			},
+			{
+				"string: decimal one",
+				[]byte(`"1"`),
+				"0x1",
+			},
+			{
+				"string: decimal max",
+				[]byte(`"115792089237316195423570985008687907853269984665640564039457584007913129639935"`),
+				"0x" + strings.Repeat("f", 64),
+			},
+			{
+				"number: zero",
+				[]byte(`0`),
+				"0x0",
+			},
+			{
+				"number: one",
+				[]byte(`1`),
+				"0x1",
+			},
+			{
+				"number: max",
+				[]byte(`115792089237316195423570985008687907853269984665640564039457584007913129639935`),
+				"0x" + strings.Repeat("f", 64),
 			},
 		}
 
 		for _, tc := range tcs {
 			t.Run(tc.name, func(t *testing.T) {
-				var x256 bigutil.Uint256
-				err := x256.UnmarshalJSON(tc.in)
-				require.NoError(t, err)
-				require.Equal(t, tc.want, x256.String())
+				for _, dec := range decs {
+					t.Run(dec.name, func(t *testing.T) {
+						var x256 bigutil.Uint256
+						err := dec.unmarshal(tc.in, &x256)
+						require.NoError(t, err)
+						require.Equal(t, tc.want, x256.String())
+					})
+				}
 			})
 		}
 	})
@@ -745,7 +806,7 @@ func TestUint256_UnmarshalGQL(t *testing.T) {
 			{
 				"nil",
 				nil,
-				"invalid graphql string: nil",
+				"unsupported graphql value: nil",
 			},
 			{
 				"int",
@@ -756,16 +817,6 @@ func TestUint256_UnmarshalGQL(t *testing.T) {
 				"string: empty",
 				"",
 				"invalid string: empty",
-			},
-			{
-				"string: invalid decimal",
-				"invalid",
-				"invalid decimal string",
-			},
-			{
-				"string: negative decimal",
-				"-1",
-				"invalid big int: negative",
 			},
 			{
 				"string: missing hex digits after 0x prefix",
@@ -787,6 +838,21 @@ func TestUint256_UnmarshalGQL(t *testing.T) {
 				"0x1" + strings.Repeat("0", 64),
 				"invalid big int: exceeds 256 bits",
 			},
+			{
+				"string: invalid decimal",
+				"invalid",
+				"invalid decimal string",
+			},
+			{
+				"string: negative decimal",
+				"-1",
+				"invalid big int: negative",
+			},
+			{
+				"string: decimal exceeds 256 bits",
+				"115792089237316195423570985008687907853269984665640564039457584007913129639936",
+				"invalid big int: exceeds 256 bits",
+			},
 		}
 
 		for _, tc := range tcs {
@@ -804,21 +870,6 @@ func TestUint256_UnmarshalGQL(t *testing.T) {
 			in   any
 			want string
 		}{
-			{
-				"string: decimal zero",
-				"0",
-				"0x0",
-			},
-			{
-				"string: decimal one",
-				"1",
-				"0x1",
-			},
-			{
-				"string: decimal max",
-				"115792089237316195423570985008687907853269984665640564039457584007913129639935",
-				"0x" + strings.Repeat("f", 64),
-			},
 			{
 				"string: 0x-prefixed hex zero",
 				"0x0",
@@ -862,12 +913,27 @@ func TestUint256_UnmarshalGQL(t *testing.T) {
 			{
 				"string: 0x-prefixed mixedcase hex max",
 				"0x" + strings.Repeat("fF", 32),
-				"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+				"0x" + strings.Repeat("f", 64),
 			},
 			{
 				"string: 0X-prefixed mixedcase hex max",
 				"0X" + strings.Repeat("fF", 32),
-				"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+				"0x" + strings.Repeat("f", 64),
+			},
+			{
+				"string: decimal zero",
+				"0",
+				"0x0",
+			},
+			{
+				"string: decimal one",
+				"1",
+				"0x1",
+			},
+			{
+				"string: decimal max",
+				"115792089237316195423570985008687907853269984665640564039457584007913129639935",
+				"0x" + strings.Repeat("f", 64),
 			},
 		}
 
