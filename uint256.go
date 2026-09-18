@@ -1,10 +1,12 @@
 package bigutil
 
 import (
+	"bytes"
 	"database/sql"
 	"database/sql/driver"
 	"encoding"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"io"
@@ -20,8 +22,11 @@ var (
 	_ driver.Valuer            = Uint256{}
 	_ sql.Scanner              = &Uint256{}
 	_ encoding.TextMarshaler   = Uint256{}
+	_ json.MarshalerTo         = Uint256{}
+	_ json.Marshaler           = Uint256{}
 	_ graphql.Marshaler        = Uint256{}
 	_ encoding.TextUnmarshaler = &Uint256{}
+	_ json.UnmarshalerFrom     = &Uint256{}
 	_ json.Unmarshaler         = &Uint256{}
 	_ graphql.Unmarshaler      = &Uint256{}
 )
@@ -59,7 +64,7 @@ func (x256 *Uint256) setBigInt(x *big.Int) error {
 		return errors.New("invalid big int: negative")
 	}
 	if x.BitLen() > 256 {
-		return fmt.Errorf("invalid big int: exceeds 256 bits")
+		return errors.New("invalid big int: exceeds 256 bits")
 	}
 
 	x256.x.Set(x)
@@ -105,8 +110,8 @@ func (x256 *Uint256) setHex(s string) error {
 	}
 
 	var x big.Int
-	if _, ok := x.SetString("0x"+hexWithoutPrefix, 0); !ok {
-		return errors.New("invalid hex string")
+	if err := x.UnmarshalText([]byte("0x" + hexWithoutPrefix)); err != nil {
+		return fmt.Errorf("invalid hex string: %w", err)
 	}
 
 	return x256.setBigInt(&x)
@@ -149,7 +154,7 @@ func (x256 Uint256) Value() (driver.Value, error) {
 // It decodes a big-endian []byte (length 1-32) into x256.
 func (x256 *Uint256) Scan(src any) error {
 	if src == nil {
-		return errors.New("invalid source: nil")
+		return errors.New("unsupported source: nil")
 	}
 
 	b, ok := src.([]byte)
@@ -170,6 +175,25 @@ func (x256 *Uint256) Scan(src any) error {
 // It encodes x256 as a 0x-prefixed lowercase hex string with no leading zeros (zero is "0x0").
 func (x256 Uint256) MarshalText() ([]byte, error) {
 	return []byte(x256.String()), nil
+}
+
+// MarshalJSONTo implements [json.MarshalerTo].
+// It encodes x256 as a quoted 0x-prefixed lowercase hex string with no leading zeros (zero is "0x0") and writes it to enc.
+func (x256 Uint256) MarshalJSONTo(enc *jsontext.Encoder) error {
+	b, _ := x256.MarshalText()
+
+	return json.MarshalEncode(enc, string(b))
+}
+
+// MarshalJSON implements [json.Marshaler].
+// It is like [Uint256.MarshalJSONTo] but returns the encoded bytes instead of writing them to a [jsontext.Encoder].
+func (x256 Uint256) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	if err := x256.MarshalJSONTo(jsontext.NewEncoder(&buf)); err != nil {
+		return nil, err
+	}
+
+	return bytes.TrimSuffix(buf.Bytes(), []byte("\n")), nil
 }
 
 // MarshalGQL implements [graphql.Marshaler].
@@ -198,38 +222,47 @@ func (x256 *Uint256) UnmarshalText(text []byte) error {
 	return x256.setBigInt(&x)
 }
 
-// UnmarshalJSON implements [json.Unmarshaler].
-// It decodes a JSON string (0x/0X-prefixed hex or non-negative decimal) or a JSON number (non-negative integer) into x256.
-func (x256 *Uint256) UnmarshalJSON(b []byte) error {
-	if len(b) == 0 {
-		return errors.New("invalid json value: empty")
-	}
-	if string(b) == "null" {
-		return errors.New("invalid json value: null")
-	}
-
-	if len(b) >= 2 && b[0] == '"' && b[len(b)-1] == '"' {
+// UnmarshalJSONFrom implements [json.UnmarshalerFrom].
+// It decodes a JSON string (0x/0X-prefixed hex or non-negative decimal) or a JSON number (non-negative integer) from dec into x256.
+func (x256 *Uint256) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	switch k := dec.PeekKind(); k {
+	case jsontext.KindString:
 		var s string
-		if err := json.Unmarshal(b, &s); err != nil {
+		if err := json.UnmarshalDecode(dec, &s); err != nil {
 			return fmt.Errorf("invalid json string: %w", err)
 		}
 
 		return x256.UnmarshalText([]byte(s))
-	}
 
-	var x big.Int
-	if _, ok := x.SetString(string(b), 10); !ok {
-		return errors.New("invalid json number")
-	}
+	case jsontext.KindNumber:
+		v, err := dec.ReadValue()
+		if err != nil {
+			return fmt.Errorf("failed to read json number: %w", err)
+		}
 
-	return x256.setBigInt(&x)
+		var x big.Int
+		if err := x.UnmarshalText(v); err != nil {
+			return fmt.Errorf("invalid json number: %w", err)
+		}
+
+		return x256.setBigInt(&x)
+
+	default:
+		return fmt.Errorf("unsupported json token kind: %v", k)
+	}
+}
+
+// UnmarshalJSON implements [json.Unmarshaler].
+// It is like [Uint256.UnmarshalJSONFrom] but decodes b instead of reading from a [jsontext.Decoder].
+func (x256 *Uint256) UnmarshalJSON(b []byte) error {
+	return x256.UnmarshalJSONFrom(jsontext.NewDecoder(bytes.NewReader(b)))
 }
 
 // UnmarshalGQL implements [graphql.Unmarshaler].
 // It decodes a GraphQL String (0x/0X-prefixed hex or non-negative decimal) into x256.
 func (x256 *Uint256) UnmarshalGQL(v any) error {
 	if v == nil {
-		return errors.New("invalid graphql string: nil")
+		return errors.New("unsupported graphql value: nil")
 	}
 
 	s, ok := v.(string)
