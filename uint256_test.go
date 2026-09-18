@@ -323,6 +323,151 @@ func TestMustNewUint256FromHex(t *testing.T) {
 	})
 }
 
+func TestNewUint256FromDecimal(t *testing.T) {
+	t.Run("failure", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   string
+			want string
+		}{
+			{
+				"empty",
+				"",
+				"invalid decimal string: empty",
+			},
+			{
+				"signed positive",
+				"+1",
+				"invalid decimal string: must not be signed",
+			},
+			{
+				"signed negative",
+				"-1",
+				"invalid decimal string: must not be signed",
+			},
+			{
+				"fractional",
+				"0.0",
+				"invalid decimal string: must contain only decimal digits",
+			},
+			{
+				"exponential",
+				"0e0",
+				"invalid decimal string: must contain only decimal digits",
+			},
+			{
+				"contains underscores",
+				"0_0",
+				"invalid decimal string: must contain only decimal digits",
+			},
+			{
+				"exceeds 256 bits",
+				"115792089237316195423570985008687907853269984665640564039457584007913129639936",
+				"invalid big integer: exceeds 256 bits",
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				_, err := bigutil.NewUint256FromDecimal(tc.in)
+				require.ErrorContains(t, err, tc.want)
+			})
+		}
+	})
+
+	t.Run("success", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   string
+			want string
+		}{
+			{
+				"zero",
+				"0",
+				"0x0",
+			},
+			{
+				"zero with leading zeros",
+				"000",
+				"0x0",
+			},
+			{
+				"one",
+				"1",
+				"0x1",
+			},
+			{
+				"one with leading zeros",
+				"001",
+				"0x1",
+			},
+			{
+				"max",
+				"115792089237316195423570985008687907853269984665640564039457584007913129639935",
+				"0x" + strings.Repeat("f", 64),
+			},
+			{
+				"max with leading zeros",
+				"00115792089237316195423570985008687907853269984665640564039457584007913129639935",
+				"0x" + strings.Repeat("f", 64),
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				x256, err := bigutil.NewUint256FromDecimal(tc.in)
+				require.NoError(t, err)
+				require.Equal(t, tc.want, x256.String())
+			})
+		}
+	})
+}
+
+func TestMustNewUint256FromDecimal(t *testing.T) {
+	t.Run("panic", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   string
+			want string
+		}{
+			{
+				"empty",
+				"",
+				"invalid decimal string: empty",
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				require.PanicsWithError(t, tc.want, func() {
+					bigutil.MustNewUint256FromDecimal(tc.in)
+				})
+			})
+		}
+	})
+
+	t.Run("success", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   string
+			want string
+		}{
+			{
+				"zero",
+				"0",
+				"0x0",
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				x256 := bigutil.MustNewUint256FromDecimal(tc.in)
+				require.Equal(t, tc.want, x256.String())
+			})
+		}
+	})
+}
+
 func TestUint256_BigInt(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		tcs := []struct {
@@ -800,8 +945,8 @@ func TestUint256_JSONUnmarshaling(t *testing.T) {
 				"0x0",
 			},
 			{
-				"quoted decimal string: zero with leading zero",
-				[]byte(`"00"`),
+				"quoted decimal string: zero with leading zeros",
+				[]byte(`"000"`),
 				"0x0",
 			},
 			{
@@ -810,8 +955,8 @@ func TestUint256_JSONUnmarshaling(t *testing.T) {
 				"0x1",
 			},
 			{
-				"quoted decimal string: one with leading zero",
-				[]byte(`"01"`),
+				"quoted decimal string: one with leading zeros",
+				[]byte(`"001"`),
 				"0x1",
 			},
 			{
@@ -820,8 +965,8 @@ func TestUint256_JSONUnmarshaling(t *testing.T) {
 				"0x" + strings.Repeat("f", 64),
 			},
 			{
-				"quoted decimal string: max with leading zero",
-				[]byte(`"0115792089237316195423570985008687907853269984665640564039457584007913129639935"`),
+				"quoted decimal string: max with leading zeros",
+				[]byte(`"00115792089237316195423570985008687907853269984665640564039457584007913129639935"`),
 				"0x" + strings.Repeat("f", 64),
 			},
 			{
@@ -1016,8 +1161,8 @@ func TestUint256_UnmarshalGQL(t *testing.T) {
 				"0x0",
 			},
 			{
-				"decimal string: zero with leading zero",
-				"00",
+				"decimal string: zero with leading zeros",
+				"000",
 				"0x0",
 			},
 			{
@@ -1026,8 +1171,8 @@ func TestUint256_UnmarshalGQL(t *testing.T) {
 				"0x1",
 			},
 			{
-				"decimal string: one with leading zero",
-				"01",
+				"decimal string: one with leading zeros",
+				"001",
 				"0x1",
 			},
 			{
@@ -1036,8 +1181,8 @@ func TestUint256_UnmarshalGQL(t *testing.T) {
 				"0x" + strings.Repeat("f", 64),
 			},
 			{
-				"decimal string: max with leading zero",
-				"0115792089237316195423570985008687907853269984665640564039457584007913129639935",
+				"decimal string: max with leading zeros",
+				"00115792089237316195423570985008687907853269984665640564039457584007913129639935",
 				"0x" + strings.Repeat("f", 64),
 			},
 		}
