@@ -695,7 +695,7 @@ func TestUint256_JSONMarshaling(t *testing.T) {
 		tcs := []struct {
 			name string
 			in   bigutil.Uint256
-			out  []byte
+			want []byte
 		}{
 			{
 				"zero value",
@@ -725,7 +725,7 @@ func TestUint256_JSONMarshaling(t *testing.T) {
 					t.Run(enc.name, func(t *testing.T) {
 						b, err := enc.marshal(tc.in)
 						require.NoError(t, err)
-						require.Equal(t, tc.out, b)
+						require.Equal(t, tc.want, b)
 					})
 				}
 			})
@@ -1000,7 +1000,7 @@ func TestUint256_JSONUnmarshaling(t *testing.T) {
 				"",
 			},
 			{
-				"unquoted string bytes: null",
+				"null",
 				[]byte(`null`),
 				"unsupported json token kind: null",
 			},
