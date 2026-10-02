@@ -1000,7 +1000,7 @@ func TestUint256_JSONUnmarshaling(t *testing.T) {
 				"",
 			},
 			{
-				"null",
+				"unquoted string bytes: null",
 				[]byte(`null`),
 				"unsupported json token kind: null",
 			},
