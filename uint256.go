@@ -39,7 +39,7 @@ type Uint256 struct {
 func NewUint256(x *big.Int) (Uint256, error) {
 	var x256 Uint256
 	if err := x256.setBigInt(x); err != nil {
-		return Uint256{}, err
+		return Uint256{}, fmt.Errorf("invalid big integer: %w", err)
 	}
 
 	return x256, nil
@@ -55,28 +55,12 @@ func MustNewUint256(x *big.Int) Uint256 {
 	return x256
 }
 
-func (x256 *Uint256) setBigInt(x *big.Int) error {
-	if x == nil {
-		return errors.New("invalid big integer: nil")
-	}
-	if x.Sign() < 0 {
-		return errors.New("invalid big integer: negative")
-	}
-	if x.BitLen() > 256 {
-		return errors.New("invalid big integer: exceeds 256 bits")
-	}
-
-	x256.x.Set(x)
-
-	return nil
-}
-
 // NewUint256FromHex returns a new [Uint256] from a hexadecimal integer string.
 // The string must have a 0x/0X prefix and must not be signed; leading zeros are allowed and ignored.
 func NewUint256FromHex(s string) (Uint256, error) {
 	var x256 Uint256
 	if err := x256.setHex(s); err != nil {
-		return Uint256{}, err
+		return Uint256{}, fmt.Errorf("invalid hexadecimal string: %w", err)
 	}
 
 	return x256, nil
@@ -92,34 +76,12 @@ func MustNewUint256FromHex(s string) Uint256 {
 	return x256
 }
 
-func (x256 *Uint256) setHex(s string) error {
-	if len(s) == 0 {
-		return errors.New("invalid hexadecimal string: empty")
-	}
-	if !strings.HasPrefix(s, "0x") && !strings.HasPrefix(s, "0X") {
-		return errors.New("invalid hexadecimal string: missing 0x/0X prefix")
-	}
-	if s == "0x" || s == "0X" {
-		return errors.New("invalid hexadecimal string: missing hexadecimal digits after 0x/0X prefix")
-	}
-	if s[2] == '+' || s[2] == '-' {
-		return errors.New("invalid hexadecimal string: must not be signed")
-	}
-
-	var x big.Int
-	if _, ok := x.SetString(s[2:], 16); !ok {
-		return errors.New("invalid hexadecimal string: must contain only hexadecimal digits")
-	}
-
-	return x256.setBigInt(&x)
-}
-
 // NewUint256FromDecimal returns a new [Uint256] from a decimal integer string.
 // The string must not be signed; leading zeros are allowed and ignored.
 func NewUint256FromDecimal(s string) (Uint256, error) {
 	var x256 Uint256
 	if err := x256.setDecimal(s); err != nil {
-		return Uint256{}, err
+		return Uint256{}, fmt.Errorf("invalid decimal string: %w", err)
 	}
 
 	return x256, nil
@@ -135,28 +97,74 @@ func MustNewUint256FromDecimal(s string) Uint256 {
 	return x256
 }
 
-func (x256 *Uint256) setDecimal(s string) error {
-	if len(s) == 0 {
-		return errors.New("invalid decimal string: empty")
-	}
-	if s[0] == '+' || s[0] == '-' {
-		return errors.New("invalid decimal string: must not be signed")
-	}
-
-	var x big.Int
-	if _, ok := x.SetString(s, 10); !ok {
-		return errors.New("invalid decimal string: must contain only decimal digits")
-	}
-
-	return x256.setBigInt(&x)
-}
-
 // NewUint256FromUint64 returns a new [Uint256] from a uint64.
 func NewUint256FromUint64(i uint64) Uint256 {
 	var x256 Uint256
 	x256.x.SetUint64(i)
 
 	return x256
+}
+
+func (x256 *Uint256) setBigInt(x *big.Int) error {
+	if x == nil {
+		return errors.New("nil")
+	}
+	if x.Sign() < 0 {
+		return errors.New("negative")
+	}
+	if x.BitLen() > 256 {
+		return errors.New("exceeds 256 bits")
+	}
+
+	x256.x.Set(x)
+
+	return nil
+}
+
+func (x256 *Uint256) setHex(s string) error {
+	if len(s) == 0 {
+		return errors.New("empty")
+	}
+	if !strings.HasPrefix(s, "0x") && !strings.HasPrefix(s, "0X") {
+		return errors.New("missing 0x/0X prefix")
+	}
+	if s == "0x" || s == "0X" {
+		return errors.New("missing hexadecimal digits after 0x/0X prefix")
+	}
+	if s[2] == '+' || s[2] == '-' {
+		return errors.New("must not be signed")
+	}
+
+	var x big.Int
+	if _, ok := x.SetString(s[2:], 16); !ok {
+		return errors.New("must contain only hexadecimal digits")
+	}
+
+	return x256.setBigInt(&x)
+}
+
+func (x256 *Uint256) setDecimal(s string) error {
+	if len(s) == 0 {
+		return errors.New("empty")
+	}
+	if s[0] == '+' || s[0] == '-' {
+		return errors.New("must not be signed")
+	}
+
+	var x big.Int
+	if _, ok := x.SetString(s, 10); !ok {
+		return errors.New("must contain only decimal digits")
+	}
+
+	return x256.setBigInt(&x)
+}
+
+func (x256 *Uint256) setString(s string) error {
+	if strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X") {
+		return x256.setHex(s)
+	}
+
+	return x256.setDecimal(s)
 }
 
 // BigInt returns a copy of the underlying [big.Int].
@@ -196,13 +204,17 @@ func (x256 *Uint256) Scan(src any) error {
 		return fmt.Errorf("unsupported source type: %T", src)
 	}
 	if len(b) == 0 {
-		return errors.New("invalid source: empty bytes")
+		return errors.New("invalid bytes source: empty")
 	}
 
 	var x big.Int
 	x.SetBytes(b)
 
-	return x256.setBigInt(&x)
+	if err := x256.setBigInt(&x); err != nil {
+		return fmt.Errorf("invalid bytes source: %w", err)
+	}
+
+	return nil
 }
 
 // MarshalText implements [encoding.TextMarshaler].
@@ -234,17 +246,11 @@ func (x256 Uint256) MarshalGQL(w io.Writer) {
 //   - hexadecimal integer string (see [NewUint256FromHex])
 //   - decimal integer string (see [NewUint256FromDecimal])
 func (x256 *Uint256) UnmarshalText(text []byte) error {
-	if len(text) == 0 {
-		return errors.New("invalid string: empty")
+	if err := x256.setString(string(text)); err != nil {
+		return fmt.Errorf("invalid string: %w", err)
 	}
 
-	s := string(text)
-
-	if strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X") {
-		return x256.setHex(s)
-	}
-
-	return x256.setDecimal(s)
+	return nil
 }
 
 // UnmarshalJSONFrom implements [json.UnmarshalerFrom].
@@ -263,12 +269,16 @@ func (x256 *Uint256) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 		return x256.UnmarshalText([]byte(s))
 
 	case jsontext.KindNumber:
-		v, err := dec.ReadValue()
+		t, err := dec.ReadToken()
 		if err != nil {
-			return fmt.Errorf("failed to read value: %w", err)
+			return fmt.Errorf("failed to read token: %w", err)
 		}
 
-		return x256.setDecimal(string(v))
+		if err := x256.setDecimal(t.String()); err != nil {
+			return fmt.Errorf("invalid number: %w", err)
+		}
+
+		return nil
 
 	default:
 		return fmt.Errorf("unsupported json token kind: %v", k)
@@ -287,13 +297,17 @@ func (x256 *Uint256) UnmarshalJSON(b []byte) error {
 //   - decimal integer string (see [NewUint256FromDecimal])
 func (x256 *Uint256) UnmarshalGQL(v any) error {
 	if v == nil {
-		return errors.New("unsupported value: nil")
+		return errors.New("unsupported input: nil")
 	}
 
 	s, ok := v.(string)
 	if !ok {
-		return fmt.Errorf("unsupported value type: %T", v)
+		return fmt.Errorf("unsupported input type: %T", v)
 	}
 
-	return x256.UnmarshalText([]byte(s))
+	if err := x256.setString(s); err != nil {
+		return fmt.Errorf("invalid string input: %w", err)
+	}
+
+	return nil
 }
