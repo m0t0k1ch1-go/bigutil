@@ -201,14 +201,14 @@ func TestNewUint256FromHex(t *testing.T) {
 				"invalid hexadecimal string: must contain only hexadecimal digits",
 			},
 			{
-				"contains underscore",
+				"contains underscores",
 				"0x0_0",
 				"invalid hexadecimal string: must contain only hexadecimal digits",
 			},
 			{
 				"exceeds 256 bits",
 				"0x1" + strings.Repeat("0", 64),
-				"invalid big integer: exceeds 256 bits",
+				"invalid hexadecimal string: exceeds 256 bits",
 			},
 		}
 
@@ -363,7 +363,7 @@ func TestNewUint256FromDecimal(t *testing.T) {
 			{
 				"exceeds 256 bits",
 				"115792089237316195423570985008687907853269984665640564039457584007913129639936",
-				"invalid big integer: exceeds 256 bits",
+				"invalid decimal string: exceeds 256 bits",
 			},
 		}
 
@@ -571,12 +571,12 @@ func TestUint256_Scan(t *testing.T) {
 			{
 				"bytes: empty",
 				[]byte{},
-				"invalid source: empty bytes",
+				"invalid bytes source: empty",
 			},
 			{
 				"bytes: exceeds 256 bits",
 				append([]byte{0x01}, bytes.Repeat([]byte{0x00}, 32)...),
-				"invalid big integer: exceeds 256 bits",
+				"invalid bytes source: exceeds 256 bits",
 			},
 		}
 
@@ -792,67 +792,67 @@ func TestUint256_UnmarshalText(t *testing.T) {
 			{
 				"string bytes: missing hexadecimal digits after 0x prefix",
 				[]byte("0x"),
-				"invalid hexadecimal string: missing hexadecimal digits after 0x/0X prefix",
+				"invalid string: missing hexadecimal digits after 0x/0X prefix",
 			},
 			{
 				"string bytes: missing hexadecimal digits after 0X prefix",
 				[]byte("0X"),
-				"invalid hexadecimal string: missing hexadecimal digits after 0x/0X prefix",
+				"invalid string: missing hexadecimal digits after 0x/0X prefix",
 			},
 			{
 				"hexadecimal string bytes: signed positive",
 				[]byte("0x+1"),
-				"invalid hexadecimal string: must not be signed",
+				"invalid string: must not be signed",
 			},
 			{
 				"hexadecimal string bytes: signed negative",
 				[]byte("0x-1"),
-				"invalid hexadecimal string: must not be signed",
+				"invalid string: must not be signed",
 			},
 			{
 				"hexadecimal string bytes: contains non-hexadecimal characters",
 				[]byte("0xg"),
-				"invalid hexadecimal string: must contain only hexadecimal digits",
+				"invalid string: must contain only hexadecimal digits",
 			},
 			{
 				"hexadecimal string bytes: contains underscores",
 				[]byte("0x0_0"),
-				"invalid hexadecimal string: must contain only hexadecimal digits",
+				"invalid string: must contain only hexadecimal digits",
 			},
 			{
 				"hexadecimal string bytes: exceeds 256 bits",
 				[]byte("0x1" + strings.Repeat("0", 64)),
-				"invalid big integer: exceeds 256 bits",
+				"invalid string: exceeds 256 bits",
 			},
 			{
 				"decimal string bytes: signed positive",
 				[]byte("+1"),
-				"invalid decimal string: must not be signed",
+				"invalid string: must not be signed",
 			},
 			{
 				"decimal string bytes: signed negative",
 				[]byte("-1"),
-				"invalid decimal string: must not be signed",
+				"invalid string: must not be signed",
 			},
 			{
 				"decimal string bytes: fractional",
 				[]byte("0.0"),
-				"invalid decimal string: must contain only decimal digits",
+				"invalid string: must contain only decimal digits",
 			},
 			{
 				"decimal string bytes: exponential",
 				[]byte("0e0"),
-				"invalid decimal string: must contain only decimal digits",
+				"invalid string: must contain only decimal digits",
 			},
 			{
 				"decimal string bytes: contains underscores",
 				[]byte("0_0"),
-				"invalid decimal string: must contain only decimal digits",
+				"invalid string: must contain only decimal digits",
 			},
 			{
 				"decimal string bytes: exceeds 256 bits",
 				[]byte("115792089237316195423570985008687907853269984665640564039457584007913129639936"),
-				"invalid big integer: exceeds 256 bits",
+				"invalid string: exceeds 256 bits",
 			},
 		}
 
@@ -1017,92 +1017,92 @@ func TestUint256_JSONUnmarshaling(t *testing.T) {
 			{
 				"quoted string bytes: missing hexadecimal digits after 0x prefix",
 				[]byte(`"0x"`),
-				"invalid hexadecimal string: missing hexadecimal digits after 0x/0X prefix",
+				"invalid string: missing hexadecimal digits after 0x/0X prefix",
 			},
 			{
 				"quoted string bytes: missing hexadecimal digits after 0X prefix",
 				[]byte(`"0X"`),
-				"invalid hexadecimal string: missing hexadecimal digits after 0x/0X prefix",
+				"invalid string: missing hexadecimal digits after 0x/0X prefix",
 			},
 			{
 				"quoted hexadecimal string bytes: signed positive",
 				[]byte(`"0x+1"`),
-				"invalid hexadecimal string: must not be signed",
+				"invalid string: must not be signed",
 			},
 			{
 				"quoted hexadecimal string bytes: signed negative",
 				[]byte(`"0x-1"`),
-				"invalid hexadecimal string: must not be signed",
+				"invalid string: must not be signed",
 			},
 			{
 				"quoted hexadecimal string bytes: contains non-hexadecimal characters",
 				[]byte(`"0xg"`),
-				"invalid hexadecimal string: must contain only hexadecimal digits",
+				"invalid string: must contain only hexadecimal digits",
 			},
 			{
 				"quoted hexadecimal string bytes: contains underscores",
 				[]byte(`"0x0_0"`),
-				"invalid hexadecimal string: must contain only hexadecimal digits",
+				"invalid string: must contain only hexadecimal digits",
 			},
 			{
 				"quoted hexadecimal string bytes: exceeds 256 bits",
 				[]byte(`"0x1` + strings.Repeat("0", 64) + `"`),
-				"invalid big integer: exceeds 256 bits",
+				"invalid string: exceeds 256 bits",
 			},
 			{
 				"quoted decimal string bytes: signed positive",
 				[]byte(`"+1"`),
-				"invalid decimal string: must not be signed",
+				"invalid string: must not be signed",
 			},
 			{
 				"quoted decimal string bytes: signed negative",
 				[]byte(`"-1"`),
-				"invalid decimal string: must not be signed",
+				"invalid string: must not be signed",
 			},
 			{
 				"quoted decimal string bytes: fractional",
 				[]byte(`"0.0"`),
-				"invalid decimal string: must contain only decimal digits",
+				"invalid string: must contain only decimal digits",
 			},
 			{
 				"quoted decimal string bytes: exponential",
 				[]byte(`"0e0"`),
-				"invalid decimal string: must contain only decimal digits",
+				"invalid string: must contain only decimal digits",
 			},
 			{
 				"quoted decimal string bytes: contains underscores",
 				[]byte(`"0_0"`),
-				"invalid decimal string: must contain only decimal digits",
+				"invalid string: must contain only decimal digits",
 			},
 			{
 				"quoted decimal string bytes: exceeds 256 bits",
 				[]byte(`"115792089237316195423570985008687907853269984665640564039457584007913129639936"`),
-				"invalid big integer: exceeds 256 bits",
+				"invalid string: exceeds 256 bits",
 			},
 			{
 				"unquoted decimal string bytes: truncated",
 				[]byte(`0.`),
-				"failed to read value",
+				"failed to read token",
 			},
 			{
 				"unquoted decimal string bytes: signed negative",
 				[]byte(`-1`),
-				"invalid decimal string: must not be signed",
+				"invalid number: must not be signed",
 			},
 			{
 				"unquoted decimal string bytes: fractional",
 				[]byte(`0.0`),
-				"invalid decimal string: must contain only decimal digits",
+				"invalid number: must contain only decimal digits",
 			},
 			{
 				"unquoted decimal string bytes: exponential",
 				[]byte(`0e0`),
-				"invalid decimal string: must contain only decimal digits",
+				"invalid number: must contain only decimal digits",
 			},
 			{
 				"unquoted decimal string bytes: exceeds 256 bits",
 				[]byte(`115792089237316195423570985008687907853269984665640564039457584007913129639936`),
-				"invalid big integer: exceeds 256 bits",
+				"invalid number: exceeds 256 bits",
 			},
 		}
 
@@ -1247,82 +1247,82 @@ func TestUint256_UnmarshalGQL(t *testing.T) {
 			{
 				"nil",
 				nil,
-				"unsupported value: nil",
+				"unsupported input: nil",
 			},
 			{
 				"int",
 				int(0),
-				"unsupported value type: int",
+				"unsupported input type: int",
 			},
 			{
 				"string: empty",
 				"",
-				"invalid string: empty",
+				"invalid string input: empty",
 			},
 			{
 				"string: missing hexadecimal digits after 0x prefix",
 				"0x",
-				"invalid hexadecimal string: missing hexadecimal digits after 0x/0X prefix",
+				"invalid string input: missing hexadecimal digits after 0x/0X prefix",
 			},
 			{
 				"string: missing hexadecimal digits after 0X prefix",
 				"0X",
-				"invalid hexadecimal string: missing hexadecimal digits after 0x/0X prefix",
+				"invalid string input: missing hexadecimal digits after 0x/0X prefix",
 			},
 			{
 				"hexadecimal string: signed positive",
 				"0x+1",
-				"invalid hexadecimal string: must not be signed",
+				"invalid string input: must not be signed",
 			},
 			{
 				"hexadecimal string: signed negative",
 				"0x-1",
-				"invalid hexadecimal string: must not be signed",
+				"invalid string input: must not be signed",
 			},
 			{
 				"hexadecimal string: contains non-hexadecimal characters",
 				"0xg",
-				"invalid hexadecimal string: must contain only hexadecimal digits",
+				"invalid string input: must contain only hexadecimal digits",
 			},
 			{
 				"hexadecimal string: contains underscores",
 				"0x0_0",
-				"invalid hexadecimal string: must contain only hexadecimal digits",
+				"invalid string input: must contain only hexadecimal digits",
 			},
 			{
 				"hexadecimal string: exceeds 256 bits",
 				"0x1" + strings.Repeat("0", 64),
-				"invalid big integer: exceeds 256 bits",
+				"invalid string input: exceeds 256 bits",
 			},
 			{
 				"decimal string: signed positive",
 				"+1",
-				"invalid decimal string: must not be signed",
+				"invalid string input: must not be signed",
 			},
 			{
 				"decimal string: signed negative",
 				"-1",
-				"invalid decimal string: must not be signed",
+				"invalid string input: must not be signed",
 			},
 			{
 				"decimal string: fractional",
 				"0.0",
-				"invalid decimal string: must contain only decimal digits",
+				"invalid string input: must contain only decimal digits",
 			},
 			{
 				"decimal string: exponential",
 				"0e0",
-				"invalid decimal string: must contain only decimal digits",
+				"invalid string input: must contain only decimal digits",
 			},
 			{
 				"decimal string: contains underscores",
 				"0_0",
-				"invalid decimal string: must contain only decimal digits",
+				"invalid string input: must contain only decimal digits",
 			},
 			{
 				"decimal string: exceeds 256 bits",
 				"115792089237316195423570985008687907853269984665640564039457584007913129639936",
-				"invalid big integer: exceeds 256 bits",
+				"invalid string input: exceeds 256 bits",
 			},
 		}
 
