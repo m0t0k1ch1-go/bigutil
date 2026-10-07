@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/99designs/gqlgen/graphql"
+	"go.yaml.in/yaml/v3"
 )
 
 var (
@@ -23,10 +24,12 @@ var (
 	_ encoding.TextMarshaler   = Uint256{}
 	_ json.MarshalerTo         = Uint256{}
 	_ json.Marshaler           = Uint256{}
+	_ yaml.Marshaler           = Uint256{}
 	_ graphql.Marshaler        = Uint256{}
 	_ encoding.TextUnmarshaler = &Uint256{}
 	_ json.UnmarshalerFrom     = &Uint256{}
 	_ json.Unmarshaler         = &Uint256{}
+	_ yaml.Unmarshaler         = &Uint256{}
 	_ graphql.Unmarshaler      = &Uint256{}
 )
 
@@ -235,6 +238,16 @@ func (x256 Uint256) MarshalJSON() ([]byte, error) {
 	return json.Marshal(x256)
 }
 
+// MarshalYAML implements [yaml.Marshaler].
+// It encodes x256 as a quoted 0x-prefixed lowercase hexadecimal string with no leading zeros (zero is "0x0").
+func (x256 Uint256) MarshalYAML() (any, error) {
+	return &yaml.Node{
+		Kind:  yaml.ScalarNode,
+		Style: yaml.DoubleQuotedStyle,
+		Value: x256.String(),
+	}, nil
+}
+
 // MarshalGQL implements [graphql.Marshaler].
 // It encodes x256 as a quoted 0x-prefixed lowercase hexadecimal string with no leading zeros (zero is "0x0") and writes it to w.
 func (x256 Uint256) MarshalGQL(w io.Writer) {
@@ -289,6 +302,23 @@ func (x256 *Uint256) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 // It is like [Uint256.UnmarshalJSONFrom] but decodes b instead of reading from a [jsontext.Decoder].
 func (x256 *Uint256) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(b, x256)
+}
+
+// UnmarshalYAML implements [yaml.Unmarshaler].
+// It decodes one of the following values from value into x256:
+//   - hexadecimal integer string (see [NewUint256FromHex])
+//   - decimal integer string (see [NewUint256FromDecimal])
+func (x256 *Uint256) UnmarshalYAML(value *yaml.Node) error {
+	var s string
+	if err := value.Decode(&s); err != nil {
+		return fmt.Errorf("invalid node: %w", err)
+	}
+
+	if err := x256.setString(s); err != nil {
+		return fmt.Errorf("invalid node: %w", err)
+	}
+
+	return nil
 }
 
 // UnmarshalGQL implements [graphql.Unmarshaler].

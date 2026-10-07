@@ -13,6 +13,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/stretchr/testify/require"
+	"go.yaml.in/yaml/v3"
 
 	"github.com/m0t0k1ch1-go/bigutil/v3"
 )
@@ -29,10 +30,12 @@ func TestUint256(t *testing.T) {
 	require.Implements(t, (*encoding.TextMarshaler)(nil), &x256)
 	require.Implements(t, (*json.MarshalerTo)(nil), &x256)
 	require.Implements(t, (*json.Marshaler)(nil), &x256)
+	require.Implements(t, (*yaml.Marshaler)(nil), &x256)
 	require.Implements(t, (*graphql.Marshaler)(nil), &x256)
 	require.Implements(t, (*encoding.TextUnmarshaler)(nil), &x256)
 	require.Implements(t, (*json.UnmarshalerFrom)(nil), &x256)
 	require.Implements(t, (*json.Unmarshaler)(nil), &x256)
+	require.Implements(t, (*yaml.Unmarshaler)(nil), &x256)
 	require.Implements(t, (*graphql.Unmarshaler)(nil), &x256)
 }
 
@@ -733,6 +736,45 @@ func TestUint256_JSONMarshaling(t *testing.T) {
 	})
 }
 
+func TestUint256_YAMLMarshaling(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   bigutil.Uint256
+			want []byte
+		}{
+			{
+				"zero value",
+				bigutil.Uint256{},
+				[]byte("\"0x0\"\n"),
+			},
+			{
+				"zero",
+				bigutil.NewUint256FromUint64(0),
+				[]byte("\"0x0\"\n"),
+			},
+			{
+				"one",
+				bigutil.NewUint256FromUint64(1),
+				[]byte("\"0x1\"\n"),
+			},
+			{
+				"max",
+				bigutil.MustNewUint256(maxUint256),
+				[]byte("\"0x" + strings.Repeat("f", 64) + "\"\n"),
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				b, err := yaml.Marshal(tc.in)
+				require.NoError(t, err)
+				require.Equal(t, tc.want, b)
+			})
+		}
+	})
+}
+
 func TestUint256_MarshalGQL(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		tcs := []struct {
@@ -1232,6 +1274,353 @@ func TestUint256_JSONUnmarshaling(t *testing.T) {
 						require.Equal(t, tc.want, x256.String())
 					})
 				}
+			})
+		}
+	})
+}
+
+func TestUint256_YAMLUnmarshaling(t *testing.T) {
+	t.Run("failure", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   []byte
+			want string
+		}{
+			{
+				"unquoted string bytes: sequence",
+				[]byte(`[]`),
+				"invalid node",
+			},
+			{
+				"unquoted string bytes: mapping",
+				[]byte(`{}`),
+				"invalid node",
+			},
+			{
+				"quoted string bytes: empty",
+				[]byte(`""`),
+				"invalid node: empty",
+			},
+			{
+				"quoted string bytes: missing hexadecimal digits after 0x prefix",
+				[]byte(`"0x"`),
+				"invalid node: missing hexadecimal digits after 0x/0X prefix",
+			},
+			{
+				"quoted string bytes: missing hexadecimal digits after 0X prefix",
+				[]byte(`"0X"`),
+				"invalid node: missing hexadecimal digits after 0x/0X prefix",
+			},
+			{
+				"quoted hexadecimal string bytes: signed positive",
+				[]byte(`"0x+1"`),
+				"invalid node: must not be signed",
+			},
+			{
+				"quoted hexadecimal string bytes: signed negative",
+				[]byte(`"0x-1"`),
+				"invalid node: must not be signed",
+			},
+			{
+				"quoted hexadecimal string bytes: contains non-hexadecimal characters",
+				[]byte(`"0xg"`),
+				"invalid node: must contain only hexadecimal digits",
+			},
+			{
+				"quoted hexadecimal string bytes: contains underscores",
+				[]byte(`"0x0_0"`),
+				"invalid node: must contain only hexadecimal digits",
+			},
+			{
+				"quoted hexadecimal string bytes: exceeds 256 bits",
+				[]byte(`"0x1` + strings.Repeat("0", 64) + `"`),
+				"invalid node: exceeds 256 bits",
+			},
+			{
+				"quoted decimal string bytes: signed positive",
+				[]byte(`"+1"`),
+				"invalid node: must not be signed",
+			},
+			{
+				"quoted decimal string bytes: signed negative",
+				[]byte(`"-1"`),
+				"invalid node: must not be signed",
+			},
+			{
+				"quoted decimal string bytes: fractional",
+				[]byte(`"0.0"`),
+				"invalid node: must contain only decimal digits",
+			},
+			{
+				"quoted decimal string bytes: exponential",
+				[]byte(`"0e0"`),
+				"invalid node: must contain only decimal digits",
+			},
+			{
+				"quoted decimal string bytes: contains underscores",
+				[]byte(`"0_0"`),
+				"invalid node: must contain only decimal digits",
+			},
+			{
+				"quoted decimal string bytes: exceeds 256 bits",
+				[]byte(`"115792089237316195423570985008687907853269984665640564039457584007913129639936"`),
+				"invalid node: exceeds 256 bits",
+			},
+			{
+				"unquoted string bytes: missing hexadecimal digits after 0x prefix",
+				[]byte(`0x`),
+				"invalid node: missing hexadecimal digits after 0x/0X prefix",
+			},
+			{
+				"unquoted string bytes: missing hexadecimal digits after 0X prefix",
+				[]byte(`0X`),
+				"invalid node: missing hexadecimal digits after 0x/0X prefix",
+			},
+			{
+				"unquoted hexadecimal string bytes: signed positive",
+				[]byte(`0x+1`),
+				"invalid node: must not be signed",
+			},
+			{
+				"unquoted hexadecimal string bytes: signed negative",
+				[]byte(`0x-1`),
+				"invalid node: must not be signed",
+			},
+			{
+				"unquoted hexadecimal string bytes: contains non-hexadecimal characters",
+				[]byte(`0xg`),
+				"invalid node: must contain only hexadecimal digits",
+			},
+			{
+				"unquoted hexadecimal string bytes: contains underscores",
+				[]byte(`0x0_0`),
+				"invalid node: must contain only hexadecimal digits",
+			},
+			{
+				"unquoted hexadecimal string bytes: exceeds 256 bits",
+				[]byte(`0x1` + strings.Repeat("0", 64)),
+				"invalid node: exceeds 256 bits",
+			},
+			{
+				"unquoted decimal string bytes: truncated",
+				[]byte(`0.`),
+				"invalid node: must contain only decimal digits",
+			},
+			{
+				"unquoted decimal string bytes: signed positive",
+				[]byte(`+1`),
+				"invalid node: must not be signed",
+			},
+			{
+				"unquoted decimal string bytes: signed negative",
+				[]byte(`-1`),
+				"invalid node: must not be signed",
+			},
+			{
+				"unquoted decimal string bytes: fractional",
+				[]byte(`0.0`),
+				"invalid node: must contain only decimal digits",
+			},
+			{
+				"unquoted decimal string bytes: exponential",
+				[]byte(`0e0`),
+				"invalid node: must contain only decimal digits",
+			},
+			{
+				"unquoted decimal string bytes: contains underscores",
+				[]byte(`0_0`),
+				"invalid node: must contain only decimal digits",
+			},
+			{
+				"unquoted decimal string bytes: exceeds 256 bits",
+				[]byte(`115792089237316195423570985008687907853269984665640564039457584007913129639936`),
+				"invalid node: exceeds 256 bits",
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				var x256 bigutil.Uint256
+				err := yaml.Unmarshal(tc.in, &x256)
+				require.ErrorContains(t, err, tc.want)
+			})
+		}
+	})
+
+	t.Run("success", func(t *testing.T) {
+		tcs := []struct {
+			name string
+			in   []byte
+			want string
+		}{
+			{
+				"quoted hexadecimal string bytes: 0x-prefixed zero",
+				[]byte(`"0x0"`),
+				"0x0",
+			},
+			{
+				"quoted hexadecimal string bytes: 0X-prefixed zero",
+				[]byte(`"0X0"`),
+				"0x0",
+			},
+			{
+				"quoted hexadecimal string bytes: 0x-prefixed zero with leading zeros",
+				[]byte(`"0x` + strings.Repeat("0", 64) + `"`),
+				"0x0",
+			},
+			{
+				"quoted hexadecimal string bytes: 0X-prefixed zero with leading zeros",
+				[]byte(`"0X` + strings.Repeat("0", 64) + `"`),
+				"0x0",
+			},
+			{
+				"quoted hexadecimal string bytes: 0x-prefixed one",
+				[]byte(`"0x1"`),
+				"0x1",
+			},
+			{
+				"quoted hexadecimal string bytes: 0X-prefixed one",
+				[]byte(`"0X1"`),
+				"0x1",
+			},
+			{
+				"quoted hexadecimal string bytes: 0x-prefixed one with leading zeros",
+				[]byte(`"0x` + strings.Repeat("0", 63) + `1"`),
+				"0x1",
+			},
+			{
+				"quoted hexadecimal string bytes: 0X-prefixed one with leading zeros",
+				[]byte(`"0X` + strings.Repeat("0", 63) + `1"`),
+				"0x1",
+			},
+			{
+				"quoted hexadecimal string bytes: 0x-prefixed mixedcase max",
+				[]byte(`"0x` + strings.Repeat("fF", 32) + `"`),
+				"0x" + strings.Repeat("f", 64),
+			},
+			{
+				"quoted hexadecimal string bytes: 0X-prefixed mixedcase max",
+				[]byte(`"0X` + strings.Repeat("fF", 32) + `"`),
+				"0x" + strings.Repeat("f", 64),
+			},
+			{
+				"quoted decimal string bytes: zero",
+				[]byte(`"0"`),
+				"0x0",
+			},
+			{
+				"quoted decimal string bytes: zero with leading zeros",
+				[]byte(`"000"`),
+				"0x0",
+			},
+			{
+				"quoted decimal string bytes: one",
+				[]byte(`"1"`),
+				"0x1",
+			},
+			{
+				"quoted decimal string bytes: one with leading zeros",
+				[]byte(`"001"`),
+				"0x1",
+			},
+			{
+				"quoted decimal string bytes: max",
+				[]byte(`"115792089237316195423570985008687907853269984665640564039457584007913129639935"`),
+				"0x" + strings.Repeat("f", 64),
+			},
+			{
+				"quoted decimal string bytes: max with leading zeros",
+				[]byte(`"00115792089237316195423570985008687907853269984665640564039457584007913129639935"`),
+				"0x" + strings.Repeat("f", 64),
+			},
+			{
+				"unquoted hexadecimal string bytes: 0x-prefixed zero",
+				[]byte(`0x0`),
+				"0x0",
+			},
+			{
+				"unquoted hexadecimal string bytes: 0X-prefixed zero",
+				[]byte(`0X0`),
+				"0x0",
+			},
+			{
+				"unquoted hexadecimal string bytes: 0x-prefixed zero with leading zeros",
+				[]byte(`0x` + strings.Repeat("0", 64)),
+				"0x0",
+			},
+			{
+				"unquoted hexadecimal string bytes: 0X-prefixed zero with leading zeros",
+				[]byte(`0X` + strings.Repeat("0", 64)),
+				"0x0",
+			},
+			{
+				"unquoted hexadecimal string bytes: 0x-prefixed one",
+				[]byte(`0x1`),
+				"0x1",
+			},
+			{
+				"unquoted hexadecimal string bytes: 0X-prefixed one",
+				[]byte(`0X1`),
+				"0x1",
+			},
+			{
+				"unquoted hexadecimal string bytes: 0x-prefixed one with leading zeros",
+				[]byte(`0x` + strings.Repeat("0", 63) + `1`),
+				"0x1",
+			},
+			{
+				"unquoted hexadecimal string bytes: 0X-prefixed one with leading zeros",
+				[]byte(`0X` + strings.Repeat("0", 63) + `1`),
+				"0x1",
+			},
+			{
+				"unquoted hexadecimal string bytes: 0x-prefixed mixedcase max",
+				[]byte(`0x` + strings.Repeat("fF", 32)),
+				"0x" + strings.Repeat("f", 64),
+			},
+			{
+				"unquoted hexadecimal string bytes: 0X-prefixed mixedcase max",
+				[]byte(`0X` + strings.Repeat("fF", 32)),
+				"0x" + strings.Repeat("f", 64),
+			},
+			{
+				"unquoted decimal string bytes: zero",
+				[]byte(`0`),
+				"0x0",
+			},
+			{
+				"unquoted decimal string bytes: zero with leading zeros",
+				[]byte(`000`),
+				"0x0",
+			},
+			{
+				"unquoted decimal string bytes: one",
+				[]byte(`1`),
+				"0x1",
+			},
+			{
+				"unquoted decimal string bytes: one with leading zeros",
+				[]byte(`001`),
+				"0x1",
+			},
+			{
+				"unquoted decimal string bytes: max",
+				[]byte(`115792089237316195423570985008687907853269984665640564039457584007913129639935`),
+				"0x" + strings.Repeat("f", 64),
+			},
+			{
+				"unquoted decimal string bytes: max with leading zeros",
+				[]byte(`00115792089237316195423570985008687907853269984665640564039457584007913129639935`),
+				"0x" + strings.Repeat("f", 64),
+			},
+		}
+
+		for _, tc := range tcs {
+			t.Run(tc.name, func(t *testing.T) {
+				var x256 bigutil.Uint256
+				err := yaml.Unmarshal(tc.in, &x256)
+				require.NoError(t, err)
+				require.Equal(t, tc.want, x256.String())
 			})
 		}
 	})
