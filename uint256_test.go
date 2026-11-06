@@ -49,17 +49,17 @@ func TestNewUint256(t *testing.T) {
 			{
 				"nil",
 				nil,
-				"invalid big integer: nil",
+				"invalid big integer: must not be nil",
 			},
 			{
 				"negative",
 				big.NewInt(-1),
-				"invalid big integer: negative",
+				"invalid big integer: must not be negative",
 			},
 			{
 				"exceeds 256 bits",
 				new(big.Int).Add(maxUint256, big.NewInt(1)),
-				"invalid big integer: exceeds 256 bits",
+				"invalid big integer: must not exceed 256 bits",
 			},
 		}
 
@@ -126,7 +126,7 @@ func TestMustNewUint256(t *testing.T) {
 			{
 				"nil",
 				nil,
-				"invalid big integer: nil",
+				"invalid big integer: must not be nil",
 			},
 		}
 
@@ -171,22 +171,22 @@ func TestNewUint256FromHex(t *testing.T) {
 			{
 				"empty",
 				"",
-				"invalid hexadecimal string: empty",
+				"invalid hexadecimal string: must not be empty",
 			},
 			{
 				"missing 0x/0X prefix",
 				"0",
-				"invalid hexadecimal string: missing 0x/0X prefix",
+				"invalid hexadecimal string: must have a 0x/0X prefix",
 			},
 			{
 				"missing hexadecimal digits after 0x prefix",
 				"0x",
-				"invalid hexadecimal string: missing hexadecimal digits after 0x/0X prefix",
+				"invalid hexadecimal string: must have hexadecimal digits after the 0x/0X prefix",
 			},
 			{
 				"missing hexadecimal digits after 0X prefix",
 				"0X",
-				"invalid hexadecimal string: missing hexadecimal digits after 0x/0X prefix",
+				"invalid hexadecimal string: must have hexadecimal digits after the 0x/0X prefix",
 			},
 			{
 				"signed positive",
@@ -211,7 +211,7 @@ func TestNewUint256FromHex(t *testing.T) {
 			{
 				"exceeds 256 bits",
 				"0x1" + strings.Repeat("0", 64),
-				"invalid hexadecimal string: exceeds 256 bits",
+				"invalid hexadecimal string: must not exceed 256 bits",
 			},
 		}
 
@@ -291,7 +291,7 @@ func TestMustNewUint256FromHex(t *testing.T) {
 			{
 				"empty",
 				"",
-				"invalid hexadecimal string: empty",
+				"invalid hexadecimal string: must not be empty",
 			},
 		}
 
@@ -336,7 +336,7 @@ func TestNewUint256FromDecimal(t *testing.T) {
 			{
 				"empty",
 				"",
-				"invalid decimal string: empty",
+				"invalid decimal string: must not be empty",
 			},
 			{
 				"signed positive",
@@ -366,7 +366,7 @@ func TestNewUint256FromDecimal(t *testing.T) {
 			{
 				"exceeds 256 bits",
 				"115792089237316195423570985008687907853269984665640564039457584007913129639936",
-				"invalid decimal string: exceeds 256 bits",
+				"invalid decimal string: must not exceed 256 bits",
 			},
 		}
 
@@ -436,7 +436,7 @@ func TestMustNewUint256FromDecimal(t *testing.T) {
 			{
 				"empty",
 				"",
-				"invalid decimal string: empty",
+				"invalid decimal string: must not be empty",
 			},
 		}
 
@@ -574,12 +574,12 @@ func TestUint256_Scan(t *testing.T) {
 			{
 				"bytes: empty",
 				[]byte{},
-				"invalid bytes source: empty",
+				"invalid bytes source: must not be empty",
 			},
 			{
 				"bytes: exceeds 256 bits",
 				append([]byte{0x01}, bytes.Repeat([]byte{0x00}, 32)...),
-				"invalid bytes source: exceeds 256 bits",
+				"invalid bytes source: must not exceed 256 bits",
 			},
 		}
 
@@ -824,22 +824,22 @@ func TestUint256_UnmarshalText(t *testing.T) {
 			{
 				"nil",
 				nil,
-				"invalid string: empty",
+				"invalid string: must not be empty",
 			},
 			{
 				"bytes: empty",
 				[]byte(""),
-				"invalid string: empty",
+				"invalid string: must not be empty",
 			},
 			{
 				"string bytes: missing hexadecimal digits after 0x prefix",
 				[]byte("0x"),
-				"invalid string: missing hexadecimal digits after 0x/0X prefix",
+				"invalid string: must have hexadecimal digits after the 0x/0X prefix",
 			},
 			{
 				"string bytes: missing hexadecimal digits after 0X prefix",
 				[]byte("0X"),
-				"invalid string: missing hexadecimal digits after 0x/0X prefix",
+				"invalid string: must have hexadecimal digits after the 0x/0X prefix",
 			},
 			{
 				"hexadecimal string bytes: signed positive",
@@ -864,7 +864,7 @@ func TestUint256_UnmarshalText(t *testing.T) {
 			{
 				"hexadecimal string bytes: exceeds 256 bits",
 				[]byte("0x1" + strings.Repeat("0", 64)),
-				"invalid string: exceeds 256 bits",
+				"invalid string: must not exceed 256 bits",
 			},
 			{
 				"decimal string bytes: signed positive",
@@ -894,7 +894,7 @@ func TestUint256_UnmarshalText(t *testing.T) {
 			{
 				"decimal string bytes: exceeds 256 bits",
 				[]byte("115792089237316195423570985008687907853269984665640564039457584007913129639936"),
-				"invalid string: exceeds 256 bits",
+				"invalid string: must not exceed 256 bits",
 			},
 		}
 
@@ -1054,17 +1054,17 @@ func TestUint256_JSONUnmarshaling(t *testing.T) {
 			{
 				"quoted string bytes: empty",
 				[]byte(`""`),
-				"invalid string: empty",
+				"invalid string: must not be empty",
 			},
 			{
 				"quoted string bytes: missing hexadecimal digits after 0x prefix",
 				[]byte(`"0x"`),
-				"invalid string: missing hexadecimal digits after 0x/0X prefix",
+				"invalid string: must have hexadecimal digits after the 0x/0X prefix",
 			},
 			{
 				"quoted string bytes: missing hexadecimal digits after 0X prefix",
 				[]byte(`"0X"`),
-				"invalid string: missing hexadecimal digits after 0x/0X prefix",
+				"invalid string: must have hexadecimal digits after the 0x/0X prefix",
 			},
 			{
 				"quoted hexadecimal string bytes: signed positive",
@@ -1089,7 +1089,7 @@ func TestUint256_JSONUnmarshaling(t *testing.T) {
 			{
 				"quoted hexadecimal string bytes: exceeds 256 bits",
 				[]byte(`"0x1` + strings.Repeat("0", 64) + `"`),
-				"invalid string: exceeds 256 bits",
+				"invalid string: must not exceed 256 bits",
 			},
 			{
 				"quoted decimal string bytes: signed positive",
@@ -1119,7 +1119,7 @@ func TestUint256_JSONUnmarshaling(t *testing.T) {
 			{
 				"quoted decimal string bytes: exceeds 256 bits",
 				[]byte(`"115792089237316195423570985008687907853269984665640564039457584007913129639936"`),
-				"invalid string: exceeds 256 bits",
+				"invalid string: must not exceed 256 bits",
 			},
 			{
 				"unquoted decimal string bytes: truncated",
@@ -1144,7 +1144,7 @@ func TestUint256_JSONUnmarshaling(t *testing.T) {
 			{
 				"unquoted decimal string bytes: exceeds 256 bits",
 				[]byte(`115792089237316195423570985008687907853269984665640564039457584007913129639936`),
-				"invalid number: exceeds 256 bits",
+				"invalid number: must not exceed 256 bits",
 			},
 		}
 
@@ -1299,17 +1299,17 @@ func TestUint256_YAMLUnmarshaling(t *testing.T) {
 			{
 				"quoted string bytes: empty",
 				[]byte(`""`),
-				"invalid node: empty",
+				"invalid node: must not be empty",
 			},
 			{
 				"quoted string bytes: missing hexadecimal digits after 0x prefix",
 				[]byte(`"0x"`),
-				"invalid node: missing hexadecimal digits after 0x/0X prefix",
+				"invalid node: must have hexadecimal digits after the 0x/0X prefix",
 			},
 			{
 				"quoted string bytes: missing hexadecimal digits after 0X prefix",
 				[]byte(`"0X"`),
-				"invalid node: missing hexadecimal digits after 0x/0X prefix",
+				"invalid node: must have hexadecimal digits after the 0x/0X prefix",
 			},
 			{
 				"quoted hexadecimal string bytes: signed positive",
@@ -1334,7 +1334,7 @@ func TestUint256_YAMLUnmarshaling(t *testing.T) {
 			{
 				"quoted hexadecimal string bytes: exceeds 256 bits",
 				[]byte(`"0x1` + strings.Repeat("0", 64) + `"`),
-				"invalid node: exceeds 256 bits",
+				"invalid node: must not exceed 256 bits",
 			},
 			{
 				"quoted decimal string bytes: signed positive",
@@ -1364,17 +1364,17 @@ func TestUint256_YAMLUnmarshaling(t *testing.T) {
 			{
 				"quoted decimal string bytes: exceeds 256 bits",
 				[]byte(`"115792089237316195423570985008687907853269984665640564039457584007913129639936"`),
-				"invalid node: exceeds 256 bits",
+				"invalid node: must not exceed 256 bits",
 			},
 			{
 				"unquoted string bytes: missing hexadecimal digits after 0x prefix",
 				[]byte(`0x`),
-				"invalid node: missing hexadecimal digits after 0x/0X prefix",
+				"invalid node: must have hexadecimal digits after the 0x/0X prefix",
 			},
 			{
 				"unquoted string bytes: missing hexadecimal digits after 0X prefix",
 				[]byte(`0X`),
-				"invalid node: missing hexadecimal digits after 0x/0X prefix",
+				"invalid node: must have hexadecimal digits after the 0x/0X prefix",
 			},
 			{
 				"unquoted hexadecimal string bytes: signed positive",
@@ -1399,7 +1399,7 @@ func TestUint256_YAMLUnmarshaling(t *testing.T) {
 			{
 				"unquoted hexadecimal string bytes: exceeds 256 bits",
 				[]byte(`0x1` + strings.Repeat("0", 64)),
-				"invalid node: exceeds 256 bits",
+				"invalid node: must not exceed 256 bits",
 			},
 			{
 				"unquoted decimal string bytes: truncated",
@@ -1434,7 +1434,7 @@ func TestUint256_YAMLUnmarshaling(t *testing.T) {
 			{
 				"unquoted decimal string bytes: exceeds 256 bits",
 				[]byte(`115792089237316195423570985008687907853269984665640564039457584007913129639936`),
-				"invalid node: exceeds 256 bits",
+				"invalid node: must not exceed 256 bits",
 			},
 		}
 
@@ -1646,17 +1646,17 @@ func TestUint256_UnmarshalGQL(t *testing.T) {
 			{
 				"string: empty",
 				"",
-				"invalid string input: empty",
+				"invalid string input: must not be empty",
 			},
 			{
 				"string: missing hexadecimal digits after 0x prefix",
 				"0x",
-				"invalid string input: missing hexadecimal digits after 0x/0X prefix",
+				"invalid string input: must have hexadecimal digits after the 0x/0X prefix",
 			},
 			{
 				"string: missing hexadecimal digits after 0X prefix",
 				"0X",
-				"invalid string input: missing hexadecimal digits after 0x/0X prefix",
+				"invalid string input: must have hexadecimal digits after the 0x/0X prefix",
 			},
 			{
 				"hexadecimal string: signed positive",
@@ -1681,7 +1681,7 @@ func TestUint256_UnmarshalGQL(t *testing.T) {
 			{
 				"hexadecimal string: exceeds 256 bits",
 				"0x1" + strings.Repeat("0", 64),
-				"invalid string input: exceeds 256 bits",
+				"invalid string input: must not exceed 256 bits",
 			},
 			{
 				"decimal string: signed positive",
@@ -1711,7 +1711,7 @@ func TestUint256_UnmarshalGQL(t *testing.T) {
 			{
 				"decimal string: exceeds 256 bits",
 				"115792089237316195423570985008687907853269984665640564039457584007913129639936",
-				"invalid string input: exceeds 256 bits",
+				"invalid string input: must not exceed 256 bits",
 			},
 		}
 
