@@ -110,13 +110,13 @@ func NewUint256FromUint64(i uint64) Uint256 {
 
 func (x256 *Uint256) setBigInt(x *big.Int) error {
 	if x == nil {
-		return errors.New("nil")
+		return errors.New("must not be nil")
 	}
 	if x.Sign() < 0 {
-		return errors.New("negative")
+		return errors.New("must not be negative")
 	}
 	if x.BitLen() > 256 {
-		return errors.New("exceeds 256 bits")
+		return errors.New("must not exceed 256 bits")
 	}
 
 	x256.x.Set(x)
@@ -126,13 +126,13 @@ func (x256 *Uint256) setBigInt(x *big.Int) error {
 
 func (x256 *Uint256) setHex(s string) error {
 	if len(s) == 0 {
-		return errors.New("empty")
+		return errors.New("must not be empty")
 	}
 	if !strings.HasPrefix(s, "0x") && !strings.HasPrefix(s, "0X") {
-		return errors.New("missing 0x/0X prefix")
+		return errors.New("must have a 0x/0X prefix")
 	}
 	if s == "0x" || s == "0X" {
-		return errors.New("missing hexadecimal digits after 0x/0X prefix")
+		return errors.New("must have hexadecimal digits after the 0x/0X prefix")
 	}
 	if s[2] == '+' || s[2] == '-' {
 		return errors.New("must not be signed")
@@ -148,7 +148,7 @@ func (x256 *Uint256) setHex(s string) error {
 
 func (x256 *Uint256) setDecimal(s string) error {
 	if len(s) == 0 {
-		return errors.New("empty")
+		return errors.New("must not be empty")
 	}
 	if s[0] == '+' || s[0] == '-' {
 		return errors.New("must not be signed")
@@ -207,7 +207,7 @@ func (x256 *Uint256) Scan(src any) error {
 		return fmt.Errorf("unsupported source type: %T", src)
 	}
 	if len(b) == 0 {
-		return errors.New("invalid bytes source: empty")
+		return errors.New("invalid bytes source: must not be empty")
 	}
 
 	var x big.Int
